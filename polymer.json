@@ -1,0 +1,19 @@
+{
+  "entrypoint": "index.html",
+  "shell": "src/patient-portal.html",
+  "fragments": [
+    "src/main/main-view.html",
+    "src/main/patients/patients-view.html",
+    "src/main/analytics/analytics-view.html",
+    "src/main/not-found-view.html"
+  ],
+  "sourceGlobs": [
+    "src/**/*",
+    "images/**/*",
+    "bower.json"
+  ],
+  "includeDependencies": [
+    "manifest.json",
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+  ]
+}

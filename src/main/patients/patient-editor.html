@@ -1,0 +1,21 @@
+<dom-module id="patient-editor">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+    </style>
+    Patient editor for [[patient.firstName]]
+  </template>
+  <script>
+    Polymer({
+      is: 'patient-editor',
+      properties: {
+        patient: {
+          type: Object,
+          notify: true
+        }
+      }
+    });
+  </script>
+</dom-module>

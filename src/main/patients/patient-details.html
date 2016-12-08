@@ -1,0 +1,115 @@
+<link rel="import" href="../../../bower_components/vaadin-icons/vaadin-icons.html">
+<link rel="import" href="patient-profile.html">
+<link rel="import" href="patient-journal.html">
+
+<dom-module id="patient-details">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: relative;
+      }
+      
+      nav.details-nav {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        text-transform: uppercase;
+        margin-bottom: 50px;
+      }
+      
+      nav.details-nav a {
+        padding-bottom: 4px;
+      }
+      
+      nav.details-nav .sub-pages a {
+        color: #B5B9BC;
+        margin-right: 16px;
+      }
+      
+      nav.details-nav .sub-pages a.active {
+        color: #9DD22D;
+        border-bottom: 2px solid #9DD22D;
+      }
+      
+      nav.details-nav .sub-pages a:last-child {
+        margin-right: 0;
+      }
+      
+      .content {
+        flex: 1;
+        overflow-y: scroll;
+      }
+      
+      @media (max-width: 600px) {
+        nav.details-nav .linktext {
+          display: none;
+        }
+      }
+    </style>
+    <!--<app-route route="{{route}}" pattern="/:subpage" data="{{routeData}}" tail="{{subroute}}"></app-route>-->
+
+    <nav class="details-nav">
+      <a href="/patients"><iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon> <span class="linktext">All patients</span></a>
+      <div class="sub-pages">
+        <a href="profile" class="item">Profile</a>
+        <a href="journal" class="item">Journal</a>
+      </div>
+      <a href="edit">Edit patient</a>
+    </nav>
+    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" fallback-selection="profile" role="main">
+      <patient-profile name="profile" patient="[[patient]]"></patient-profile>
+      <patient-journal name="journal" patient="[[patient]]"></patient-journal>
+      <patient-editor name="edit" patient="[[patient]]"></patient-editor>
+    </iron-pages>
+
+  </template>
+  <script>
+    Polymer({
+      is: 'patient-details',
+      properties: {
+        patient: {
+          type: Object, 
+          notify: true
+        }, 
+        route: {
+          type: Object, 
+          notify: true
+        },
+        subpage: {
+          type: String,
+          reflectToAttribute: true,
+          observer: '_pageChanged'
+        }
+      },
+
+      created: function () {
+        this.routing = new Map([
+          ['profile', 'patient-profile.html'],
+          ['journal', 'patient-journal.html'],
+          ['new', 'patient-editor.html'],
+          ['edit', 'patient-editor.html'],
+        ]);
+      },
+
+      observers: [
+        '_routePageChanged(routeData.subpage)'
+      ],
+
+      _routePageChanged: function (page) {
+        if (!page) {
+          this.set('routeData.subpage', 'profile');
+        } else {
+          this.page = page;
+        }
+      },
+
+      _pageChanged: function (page) {
+        const resolvedPageUrl = this.resolveUrl(this.routing.get(page));
+        this.importHref(resolvedPageUrl, null, null, true);
+      }
+    });
+  </script>
+</dom-module>

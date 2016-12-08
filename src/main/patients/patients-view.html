@@ -1,0 +1,174 @@
+<link rel="import" href="../../../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="../../../bower_components/app-route/app-route.html">
+<link rel="import" href="../../shared/formatters.html">
+<link rel="import" href="patient-details.html">
+
+<dom-module id="patients-view">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: flex;
+        flex-direction: column;
+      }
+
+      vaadin-grid {
+        flex: 1;
+      }
+
+      patient-details {
+        position: absolute;
+        box-sizing: border-box;
+        padding: 16px;
+        top: 0;
+        left: 100%;
+        height: 100vh;
+        background: #fff;
+        border-left: 5px solid #434D54;
+      }
+
+      patient-details.open {
+        left: 25%;
+        right: 0;
+        box-shadow: 2px 2px 10px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      @media (max-width: 600px) {
+        patient-details.open {
+          left: 0;
+          box-shadow: none;
+          border: none;
+        }
+      }
+    </style>
+    <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}"></app-route>
+
+    <vaadin-grid id="patients" items="[[patients]]" selected-item="{{currentPatient}}" on-cell-click="_selectRow">
+      <vaadin-grid-column>
+        <template class="header">
+          <vaadin-grid-sorter path="item.lastName">
+            Name
+          </vaadin-grid-sorter>
+        </template>
+        <template>
+          <b>[[item.lastName]], [[item.firstName]]</b>
+        </template>
+      </vaadin-grid-column>
+      <vaadin-grid-column width="40px">
+        <template class="header">
+          <vaadin-grid-sorter path="item.id">
+            Id
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[item.id]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column>
+        <template class="header">
+          <vaadin-grid-sorter path="item.medicalRecord">
+            Medical Record
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[item.medicalRecord]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column>
+        <template class="header">
+          <vaadin-grid-sorter path="item.doctor.lastName">
+            Doctor
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[item.doctor.lastName]], [[item.doctor.firstName]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column>
+        <template class="header">
+          <vaadin-grid-sorter path="item.lastEntry">
+            Last Entry
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[formatDate(item.lastEntry)]]</template>
+      </vaadin-grid-column>
+    </vaadin-grid>
+
+    <patient-details class$="[[_detailsOpen(currentPatient)]]" patient="{{currentPatient}}"
+                     route="{{subroute}}"></patient-details>
+  </template>
+  <script>
+    Polymer({
+      is: 'patients-view',
+      behaviors: [PatientPortal.Formatters],
+      properties: {
+        patients: {
+          type: Array,
+          notify: true
+        },
+        currentPatient: {
+          type: Object,
+          notify: true,
+          observer: '_patientChanged'
+        },
+        route: {
+          type: Object,
+          notify: true
+        }
+      },
+
+      ready: function () {
+        this._updatePatients();
+      },
+
+      observers: [
+        '_setPatientFromURL(routeData.id)'
+      ],
+
+      _setPatientFromURL: function () {
+        const id = +this.routeData.id;
+
+        if (id && this.patients && this.patients.length > 0 &&
+          (!this.currentPatient || this.currentPatient && this.currentPatient.id !== id)) {
+          console.log('Setting current patient from url ' + id);
+          this.currentPatient = this.patients.find(p => p.id === id);
+          this._selectPatient(this.currentPatient);
+        }
+      },
+
+      _patientChanged: function (patient) {
+        // Grid fires an initial null selection when initialized which messes up everything
+        if (!this.gridInited) {
+          this.gridInited = true;
+          return;
+        }
+        console.log('Setting route id from patient ', patient);
+        if (this.currentPatient && this.currentPatient.id === this.routeData.id) {
+          console.log('Current patient already matches url');
+          return;
+        }
+        this.set('routeData.id', patient ? patient.id : '');
+      },
+
+      _updatePatients: function () {
+        PatientPortal.http.get('/patients')
+          .then(p => {
+            this.patients = p;
+            this._setPatientFromURL();
+          });
+      },
+
+      _selectRow: function (e) {
+        this._selectPatient(e.detail.model.item);
+      },
+
+      _selectPatient: function (patient) {
+        const grid = this.$.patients;
+        const deselect = grid.selectedItems.includes(patient);
+
+        if (deselect) {
+          grid.selectedItems = [];
+        } else {
+          grid.selectedItems = [patient];
+        }
+      },
+
+      _detailsOpen: function (currentPatient) {
+        return currentPatient ? 'open' : '';
+      }
+    });
+  </script>
+</dom-module>
