@@ -140,7 +140,7 @@
           console.log('Current patient already matches url');
           return;
         }
-        this.set('routeData.id', patient ? patient.id : '');
+        this.set('routeData.id', patient ? patient.id : null);
       },
 
       _updatePatients: function () {
