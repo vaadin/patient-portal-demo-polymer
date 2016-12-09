@@ -52,7 +52,14 @@
       (function() {
         'use strict';
 
-        var onload = function() {
+        if(!('fetch' in window)){
+          let script = document.createElement('script');
+          script.async = true;
+          script.src = '/bower_components/fetch/fetch.js';
+          document.head.appendChild(script);
+        }
+
+        let onload = function() {
           // For native Imports, manually fire WebComponentsReady so user code
           // can use the same code path for native and polyfill'd imports.
           if (!window.HTMLImports) {
@@ -62,14 +69,14 @@
           }
         };
 
-        var webComponentsSupported = (
+        let webComponentsSupported = (
           'registerElement' in document
           && 'import' in document.createElement('link')
           && 'content' in document.createElement('template')
         );
 
         if (!webComponentsSupported) {
-          var script = document.createElement('script');
+          let script = document.createElement('script');
           script.async = true;
           script.src = '/bower_components/webcomponentsjs/webcomponents-lite.min.js';
           script.onload = onload;

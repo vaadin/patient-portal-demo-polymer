@@ -1,19 +1,139 @@
+<link rel="import" href="../../../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="../../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../shared/formatters.html">
 <dom-module id="patient-journal">
   <template>
     <style include="shared-styles">
       :host {
-        display: block;
+        display: flex;
+        flex-direction: column;
       }
+
+      vaadin-grid {
+        flex: 1;
+      }
+
+      .details {
+        padding: 0 25px 25px 25px;
+      }
+
+      .details h3 {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+      }
+
+      .details article {
+        white-space: normal;
+      }
+
+      .cell-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .cell-wrapper div {
+        width: 50%;
+      }
+
+      .cell-wrapper .date {
+        font-weight: bold;
+      }
+
+      .cell-wrapper .appointment,
+      .cell-wrapper .doctor {
+        text-align: right;
+      }
+
+      .cell-wrapper .doctor-label {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
     </style>
-    Patient journal for [[patient.firstName]]
+
+    <iron-media-query query="(max-width: 600px)" query-matches="{{narrow}}"></iron-media-query>
+
+
+
+    <vaadin-grid id="patients" items="[[entries]]">
+      <vaadin-grid-column width="40px" flex="0">
+        <template class="header"></template>
+        <template>
+          <paper-checkbox checked="{{expanded}}"></paper-checkbox>
+        </template>
+      </vaadin-grid-column>
+
+      <vaadin-grid-column hidden="[[!narrow]]">
+        <template class="header"></template>
+        <template>
+          <div class="cell-wrapper">
+            <div class="date">{{item.date}}</div>
+            <div class="appointment">{{item.appointmentType}}</div>
+            <div class="doctor-label">Doctor</div>
+            <div class="doctor">{{item.doctor.lastName}}, {{item.doctor.firstName}}</div>
+          </div>
+        </template>
+      </vaadin-grid-column>
+
+      <vaadin-grid-column hidden="[[narrow]]">
+        <template class="header">
+          <vaadin-grid-sorter path="date">
+            Date
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[formatDate(item.date)]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column hidden="[[narrow]]">
+        <template class="header">
+          <vaadin-grid-sorter path="appointmentType">
+            Appointment
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[capitalize(item.appointmentType)]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column hidden="[[narrow]]">
+        <template class="header">
+          <vaadin-grid-sorter path="doctor.lastName">
+            Doctor
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[item.doctor.lastName]], [[item.doctor.firstName]]</template>
+      </vaadin-grid-column>
+      <vaadin-grid-column hidden="[[narrow]]">
+        <template class="header">
+          <vaadin-grid-sorter path="entry">
+            Notes
+          </vaadin-grid-sorter>
+        </template>
+        <template>[[item.entry]]</template>
+      </vaadin-grid-column>
+
+      <template class="row-details">
+        <section class="details">
+          <h3>Notes</h3>
+          <article>[[item.entry]]</article>
+        </section>
+      </template>
+    </vaadin-grid>
   </template>
   <script>
     Polymer({
-      is: 'patient-journal', 
+      is: 'patient-journal',
+      behaviors: [PatientPortal.Formatters],
       properties: {
         patient: {
-          type: Object, 
-          notify: true
+          type: Object,
+          notify: true,
+          observer: '_updateEntries'
+        },
+        entries: Array
+      },
+
+      _updateEntries: function () {
+        if(this.patient){
+        PatientPortal.http.get(`/patients/${this.patient.id}/journalentries`)
+          .then(entries => this.entries = entries);
         }
       }
     });

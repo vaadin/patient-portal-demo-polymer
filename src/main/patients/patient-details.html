@@ -39,7 +39,12 @@
 
       .content {
         flex: 1;
+        display: flex;
         overflow-y: scroll;
+      }
+
+      .content > * {
+        flex: 1;
       }
 
       @media (max-width: 600px) {
@@ -48,15 +53,18 @@
         }
       }
     </style>
-    <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}" tail="{{subroute}}"></app-route>
+    <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}"
+               tail="{{subroute}}"></app-route>
 
     <nav class="details-nav">
       <a on-tap="goBack">
         <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>
       <div class="sub-pages">
-        <a href$="[[_getRelativeLink(route.prefix, 'profile')]]" class$="[[_getItemClasses('profile', page)]]">Profile</a>
-        <a href$="[[_getRelativeLink(route.prefix, 'journal')]]" class$="[[_getItemClasses('journal', page)]]">Journal</a>
+        <a href$="[[_getRelativeLink(route.prefix, 'profile')]]"
+           class$="[[_getItemClasses('profile', page)]]">Profile</a>
+        <a href$="[[_getRelativeLink(route.prefix, 'journal')]]"
+           class$="[[_getItemClasses('journal', page)]]">Journal</a>
       </div>
       <a href="edit">Edit patient</a>
     </nav>
@@ -104,7 +112,7 @@
       ],
 
       routeChanged: function () {
-        if(this.route.path === '' && this.patient){
+        if (this.route.path === '' && !this.page && this.patient) {
           this.set('route.path', '/profile');
         }
       },
@@ -119,7 +127,7 @@
         }
       },
 
-      _getRelativeLink: function(prefix, page) {
+      _getRelativeLink: function (prefix, page) {
         return `${prefix}/${page}`;
       },
 
