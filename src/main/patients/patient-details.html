@@ -1,6 +1,5 @@
 <link rel="import" href="../../../bower_components/vaadin-icons/vaadin-icons.html">
-<link rel="import" href="patient-profile.html">
-<link rel="import" href="patient-journal.html">
+<link rel="import" href="../../../bower_components/app-route/app-route.html">
 
 <dom-module id="patient-details">
   <template>
@@ -11,7 +10,7 @@
         height: 100vh;
         position: relative;
       }
-      
+
       nav.details-nav {
         display: flex;
         width: 100%;
@@ -19,47 +18,49 @@
         text-transform: uppercase;
         margin-bottom: 50px;
       }
-      
+
       nav.details-nav a {
         padding-bottom: 4px;
       }
-      
+
       nav.details-nav .sub-pages a {
         color: #B5B9BC;
         margin-right: 16px;
       }
-      
+
       nav.details-nav .sub-pages a.active {
         color: #9DD22D;
         border-bottom: 2px solid #9DD22D;
       }
-      
+
       nav.details-nav .sub-pages a:last-child {
         margin-right: 0;
       }
-      
+
       .content {
         flex: 1;
         overflow-y: scroll;
       }
-      
+
       @media (max-width: 600px) {
         nav.details-nav .linktext {
           display: none;
         }
       }
     </style>
-    <!--<app-route route="{{route}}" pattern="/:subpage" data="{{routeData}}" tail="{{subroute}}"></app-route>-->
+    <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}" tail="{{subroute}}"></app-route>
 
     <nav class="details-nav">
-      <a href="/patients"><iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon> <span class="linktext">All patients</span></a>
+      <a on-tap="goBack">
+        <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
+        <span class="linktext">All patients</span></a>
       <div class="sub-pages">
-        <a href="profile" class="item">Profile</a>
-        <a href="journal" class="item">Journal</a>
+        <a href$="[[_getRelativeLink(route.prefix, 'profile')]]" class$="[[_getItemClasses('profile', page)]]">Profile</a>
+        <a href$="[[_getRelativeLink(route.prefix, 'journal')]]" class$="[[_getItemClasses('journal', page)]]">Journal</a>
       </div>
       <a href="edit">Edit patient</a>
     </nav>
-    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" fallback-selection="profile" role="main">
+    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" role="main">
       <patient-profile name="profile" patient="[[patient]]"></patient-profile>
       <patient-journal name="journal" patient="[[patient]]"></patient-journal>
       <patient-editor name="edit" patient="[[patient]]"></patient-editor>
@@ -71,14 +72,18 @@
       is: 'patient-details',
       properties: {
         patient: {
-          type: Object, 
-          notify: true
-        }, 
-        route: {
-          type: Object, 
+          type: Object,
           notify: true
         },
-        subpage: {
+        route: {
+          type: Object,
+          notify: true,
+          observer: 'routeChanged',
+          value: function () {
+            return {}
+          }
+        },
+        page: {
           type: String,
           reflectToAttribute: true,
           observer: '_pageChanged'
@@ -95,20 +100,36 @@
       },
 
       observers: [
-        '_routePageChanged(routeData.subpage)'
+        '_routePageChanged(routeData.page)'
       ],
 
+      routeChanged: function () {
+        if(this.route.path === '' && this.patient){
+          this.set('route.path', '/profile');
+        }
+      },
+
+      goBack: function () {
+        this.patient = null;
+      },
+
       _routePageChanged: function (page) {
-        if (!page) {
-          this.set('routeData.subpage', 'profile');
-        } else {
+        if (page) {
           this.page = page;
         }
+      },
+
+      _getRelativeLink: function(prefix, page) {
+        return `${prefix}/${page}`;
       },
 
       _pageChanged: function (page) {
         const resolvedPageUrl = this.resolveUrl(this.routing.get(page));
         this.importHref(resolvedPageUrl, null, null, true);
+      },
+
+      _getItemClasses: function (link, page) {
+        return 'item ' + (link === page ? 'active' : '');
       }
     });
   </script>
