@@ -69,7 +69,7 @@
         Logout</a>
 
     </nav>
-    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" fallback-selection="not-found" role="main">
+    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" fallback-selection="not-found" role="main" selected-attribute="active">
       <patients-view name="patients" route="{{subroute}}"></patients-view>
       <analytics-view name="analytics" route="{{subroute}}"></analytics-view>
     </iron-pages>
@@ -99,7 +99,7 @@
 
       _routePageChanged: function (page) {
         if (!page) {
-          this.set('routeData.page', 'patients');
+          this.set('route.path', '/patients');
         } else {
           this.page = page;
         }

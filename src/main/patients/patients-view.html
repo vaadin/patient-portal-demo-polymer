@@ -107,7 +107,8 @@
         route: {
           type: Object,
           notify: true
-        }
+        },
+        active: Boolean
       },
 
       ready: function () {
@@ -119,11 +120,10 @@
       ],
 
       _setPatientFromURL: function () {
+        if(!this.active) return;
         const id = +this.routeData.id;
-
         if (id && this.patients && this.patients.length > 0 &&
           (!this.currentPatient || this.currentPatient && this.currentPatient.id !== id)) {
-          console.log('Setting current patient from url ' + id);
           this.currentPatient = this.patients.find(p => p.id === id);
           this._selectPatient(this.currentPatient);
         }
@@ -135,12 +135,10 @@
           this.gridInited = true;
           return;
         }
-        console.log('Setting route id from patient ', patient);
         if (this.currentPatient && this.currentPatient.id === this.routeData.id) {
-          console.log('Current patient already matches url');
           return;
         }
-        this.set('routeData.id', patient ? patient.id : null);
+        this.set('route.path', '/' + (patient ? patient.id : ''));
       },
 
       _updatePatients: function () {
