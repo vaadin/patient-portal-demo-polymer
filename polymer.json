@@ -4,6 +4,7 @@
   "fragments": [
     "src/main/main-view.html",
     "src/main/patients/patients-view.html",
+    "src/main/patients/patient-details.html",
     "src/main/analytics/analytics-view.html",
     "src/main/not-found-view.html"
   ],
@@ -14,6 +15,8 @@
   ],
   "includeDependencies": [
     "manifest.json",
-    "bower_components/webcomponentsjs/webcomponents-lite.min.js"
+    "bower_components/webcomponentsjs/webcomponents-lite.min.js",
+    "bower_components/fetch/fetch.js",
+    "bower_components/moment/min/moment.min.js"
   ]
 }

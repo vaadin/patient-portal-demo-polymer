@@ -1,5 +1,9 @@
 <link rel="import" href="../../../bower_components/vaadin-icons/vaadin-icons.html">
 <link rel="import" href="../../../bower_components/app-route/app-route.html">
+<link rel="import" href="patient-profile.html">
+<link rel="import" href="patient-editor.html">
+<link rel="import" href="patient-journal.html">
+<link rel="import" href="journal-editor.html">
 
 <dom-module id="patient-details">
   <template>
@@ -9,6 +13,10 @@
         flex-direction: column;
         height: 100vh;
         position: relative;
+      }
+
+      nav[hidden].details-nav {
+        display: none;
       }
 
       nav.details-nav {
@@ -56,7 +64,7 @@
     <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}"
                tail="{{subroute}}"></app-route>
 
-    <nav class="details-nav">
+    <nav class="details-nav" hidden="[[_editing(page)]]">
       <a on-tap="goBack">
         <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>
@@ -66,12 +74,13 @@
         <a href$="[[_getRelativeLink(route.prefix, 'journal')]]"
            class$="[[_getItemClasses('journal', page)]]">Journal</a>
       </div>
-      <a href="edit">Edit patient</a>
+      <a href$="[[_getRelativeLink(route.prefix, 'edit')]]">Edit patient</a>
     </nav>
-    <iron-pages class="content" selected="[[page]]" attr-for-selected="name" role="main">
+    <iron-pages class="content" selected="[[page]]" fallback-selection="profile" attr-for-selected="name" role="main">
       <patient-profile name="profile" patient="[[patient]]"></patient-profile>
       <patient-journal name="journal" patient="[[patient]]"></patient-journal>
-      <patient-editor name="edit" patient="[[patient]]"></patient-editor>
+      <patient-editor name="edit" patient="[[patient]]" route="{{route}}"></patient-editor>
+      <journal-editor name="journal/new" patient="[[patient]]" route="{{route}}"></journal-editor>
     </iron-pages>
 
   </template>
@@ -92,9 +101,7 @@
           }
         },
         page: {
-          type: String,
-          reflectToAttribute: true,
-          observer: '_pageChanged'
+          type: String
         }
       },
 
@@ -104,6 +111,7 @@
           ['journal', 'patient-journal.html'],
           ['new', 'patient-editor.html'],
           ['edit', 'patient-editor.html'],
+          ['journal/new', 'journal-editor.html'],
         ]);
       },
 
@@ -112,7 +120,7 @@
       ],
 
       routeChanged: function () {
-        if (this.route.path === '' && !this.page && this.patient) {
+        if (this.route.path === '' && !this.page) {
           this.set('route.path', '/profile');
         }
       },
@@ -131,13 +139,12 @@
         return `${prefix}/${page}`;
       },
 
-      _pageChanged: function (page) {
-        const resolvedPageUrl = this.resolveUrl(this.routing.get(page));
-        this.importHref(resolvedPageUrl, null, null, true);
-      },
-
       _getItemClasses: function (link, page) {
         return 'item ' + (link === page ? 'active' : '');
+      },
+
+      _editing: function () {
+        return this.page.indexOf('edit') >= 0 || this.page.indexOf('new') >= 0;
       }
     });
   </script>
