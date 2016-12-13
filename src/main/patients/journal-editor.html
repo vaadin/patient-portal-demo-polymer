@@ -91,8 +91,8 @@
 
         <div class="field">
           <label for="doctor">Doctor</label>
-          <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="fullName"
-                            value="{{model.doctor}}" class="input" required></vaadin-combo-box>
+          <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="fullName" item-value-path="id"
+                            selected-item="{{model.doctor}}" class="input" required></vaadin-combo-box>
         </div>
       </div>
 
@@ -100,7 +100,7 @@
 
       <div class="field stacked centered notes">
         <label for="entry">Notes</label>
-        <textarea id="entry" rows="15" name="entry" value="{{model.text::input}}">
+        <textarea id="entry" rows="15" name="entry" value="{{model.entry::input}}">
     </textarea>
       </div>
 
@@ -118,7 +118,7 @@
         patient: {
           type: Object,
           notify: true,
-          observer: '_patientChanged'
+          observer: '_resetModel'
         },
         model: {
           type: Object
@@ -151,22 +151,31 @@
         this._getDoctors();
       },
 
-      _patientChanged: function() {
+      _resetModel: function () {
         this.model = {
           date: moment().format('YYYY-MM-DD'),
-          text: ''
+          entry: ''
         };
       },
 
       _getDoctors: function () {
         PatientPortal.http.get('/doctors')
         // add fullName property for combobox
-          .then(doctors => this.doctors = doctors.map(doc => doc.fullName = `${doc.lastName}, ${doc.firstName}`));
+          .then(doctors => {
+            this.doctors = doctors.map(doc => {
+              doc.fullName = `${doc.lastName}, ${doc.firstName}`;
+              return doc;
+            });
+          });
       },
 
       save: function () {
         PatientPortal.http.put(`${this.route.prefix}/journalentries`, this.model)
-          .then(() => this.set('route.path', '/journal'))
+          .then(() => {
+            this.fire('new-entry');
+            this.set('route.path', '/journal');
+            this._resetModel();
+          })
           .catch(err => console.log(err));
       },
 

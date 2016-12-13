@@ -2,12 +2,14 @@ window.PatientPortal = window.PatientPortal || {};
 
 window.PatientPortal.http = function () {
 
-  function getAuthHeader() {
+  function getHeaders() {
     const headers = new Headers();
     const token = localStorage.getItem('authToken');
     if (token) {
       headers.append('Authorization', `Bearer ${token}`);
     }
+
+    headers.append('content-type', 'application/json');
 
     return headers;
   }
@@ -15,7 +17,7 @@ window.PatientPortal.http = function () {
   function getRequest(method, path, body) {
     return new Request(`${PatientPortal.config.apiUrl}/${path}`, {
       method: method,
-      headers: getAuthHeader(),
+      headers: getHeaders(),
       body: JSON.stringify(body)
     });
   }
@@ -28,8 +30,7 @@ window.PatientPortal.http = function () {
       document.dispatchEvent(new CustomEvent('log-out', {bubbles: true}));
       return;
     }
-    var error = new Error('Things went horribly wrong');
-    throw error;
+    throw new Error('Things went horribly wrong', response);
   }
 
   return {
@@ -40,7 +41,7 @@ window.PatientPortal.http = function () {
       return fetch(getRequest('POST', path, body)).then(checkStatus).then(res => res.json());
     },
     put: function (path, body) {
-      return fetch(getRequest('PUT', body)).then(checkStatus).then(res => res.json());
+      return fetch(getRequest('PUT', path, body)).then(checkStatus);
     },
     delete: function (path) {
       return fetch(getRequest('DELETE', path)).then(checkStatus).then(res => res.json());

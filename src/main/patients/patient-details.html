@@ -71,16 +71,16 @@
         <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>
       <div class="sub-pages">
-        <a href$="[[_getRelativeLink(route.prefix, 'profile')]]"
+        <a href$="[[route.prefix]]/profile"
            class$="[[_getItemClasses('profile', page)]]">Profile</a>
-        <a href$="[[_getRelativeLink(route.prefix, 'journal')]]"
+        <a href$="[[route.prefix)]]/journal"
            class$="[[_getItemClasses('journal', page)]]">Journal</a>
       </div>
-      <a href$="[[_getRelativeLink(route.prefix, 'edit')]]">Edit patient</a>
+      <a href$="[[route.prefix]]/edit">Edit patient</a>
     </nav>
     <iron-pages class="content" selected="[[page]]" fallback-selection="profile" attr-for-selected="name" role="main">
       <patient-profile name="profile" patient="[[patient]]" route="{{route}}"></patient-profile>
-      <patient-journal name="journal" patient="[[patient]]" route="{{route}}"></patient-journal>
+      <patient-journal name="journal" patient="[[patient]]" route="{{route}}" entries="[[journalEntries]]"></patient-journal>
       <patient-editor name="edit" patient="[[patient]]" route="{{route}}"></patient-editor>
       <journal-editor name="new-entry" patient="[[patient]]" route="{{route}}"></journal-editor>
     </iron-pages>
@@ -93,8 +93,10 @@
       properties: {
         patient: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: '_updateJournalEntries'
         },
+        journalEntries: Array,
         route: {
           type: Object,
           notify: true,
@@ -122,6 +124,10 @@
         '_routePageChanged(routeData.page)'
       ],
 
+      listeners: {
+        'new-entry': '_updateJournalEntries'
+      },
+
       routeChanged: function () {
         if (this.route.path === '' && !this.page) {
           this.set('route.path', '/profile');
@@ -132,14 +138,24 @@
         this.patient = null;
       },
 
+      _updateEntries: function () {
+        if(this.patient){
+          PatientPortal.http.get(`/patients/${this.patient.id}/journalentries`)
+            .then(entries => this.entries = entries);
+        }
+      },
+
       _routePageChanged: function (page) {
         if (page) {
           this.page = page;
         }
       },
 
-      _getRelativeLink: function (prefix, page) {
-        return `${prefix}/${page}`;
+      _updateJournalEntries: function () {
+        if(this.patient){
+          PatientPortal.http.get(`/patients/${this.patient.id}/journalentries`)
+            .then(entries => this.journalEntries = entries);
+        }
       },
 
       _getItemClasses: function (link, page) {

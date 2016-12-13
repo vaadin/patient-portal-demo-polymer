@@ -37,7 +37,6 @@
         box-shadow: 2px 2px 10px 8px rgba(0, 0, 0, 0.2);
       }
 
-
       .details-row label {
         width: 50%;
         text-align: right;
@@ -53,7 +52,8 @@
         }
       }
     </style>
-    <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}" active="{{routeActive}}"></app-route>
+    <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}"
+               active="{{routeActive}}"></app-route>
 
     <iron-media-query query="(max-width: 600px)" query-matches="{{narrow}}"></iron-media-query>
     <vaadin-grid id="grid" items="[[patients]]" selected-item="{{currentPatient}}" on-cell-click="_selectRow">
@@ -163,6 +163,10 @@
         '_setPatientFromURL(routeData.id)'
       ],
 
+      listeners: {
+        'patients-updated': '_updatePatients'
+      },
+
       _setPatientFromURL: function () {
         if (!this.active) return;
         const id = +this.routeData.id;
@@ -183,7 +187,7 @@
           return;
         }
 
-        if(this.routeActive){
+        if (this.routeActive) {
           this.set('routeData.id', (patient ? patient.id : ''));
         } else {
           this.set('route.path', '/' + (patient ? patient.id : ''));
@@ -194,7 +198,11 @@
         PatientPortal.http.get('/patients')
           .then(p => {
             this.patients = p;
-            this._setPatientFromURL();
+            if (this.currentPatient) {
+              this.currentPatient = this.patients.find(p => p.id === this.currentPatient.id);
+            } else {
+              this._setPatientFromURL();
+            }
           });
       },
 
@@ -214,17 +222,16 @@
       },
 
       _detailsOpen: function (currentPatient) {
-        let open = currentPatient ? 'open' : '';
-        return open;
+        return currentPatient ? 'open' : '';
       },
 
-      _expandIcon: function(expanded){
+      _expandIcon: function (expanded) {
         return 'vaadin-icons:' + (expanded ? 'chevron-down' : 'chevron-right')
       },
 
-      _toggleExpand: function(evt) {
+      _toggleExpand: function (evt) {
         const item = evt.model.item;
-        if(this.$.grid.expandedItems && this.$.grid.expandedItems.includes(item)){
+        if (this.$.grid.expandedItems && this.$.grid.expandedItems.includes(item)) {
           this.$.grid.expandedItems = [];
         } else {
           this.$.grid.expandedItems = [item];

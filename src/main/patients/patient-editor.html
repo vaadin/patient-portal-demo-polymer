@@ -188,12 +188,12 @@
       },
 
       setDoctor: function () {
-        if(this.patient) {
+        if (this.patient) {
           this.set('model.doctor', this._addFullNameToDoctor(this.patient.doctor));
         }
       },
 
-      _addFullNameToDoctor: function(doc){
+      _addFullNameToDoctor: function (doc) {
         doc.fullName = `${doc.lastName}, ${doc.firstName}`;
         return doc;
       },
@@ -204,7 +204,21 @@
       },
 
       save: function () {
-        PatientPortal.http.put('/patients')
+        if (this.model.id) {
+          PatientPortal.http.post('/patients/' + this.model.id, this.model)
+            .then(() => {
+              this.fire('patients-updated');
+              this.close();
+            })
+            .catch(err => console.log(err));
+        } else {
+          PatientPortal.http.put('/patients', this.model)
+            .then(() => {
+              this.fire('patients-updated');
+              this.close();
+            })
+            .catch(err => console.log(err));
+        }
       },
 
       close: function () {

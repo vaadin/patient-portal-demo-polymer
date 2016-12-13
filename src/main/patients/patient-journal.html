@@ -136,17 +136,9 @@
         route: Object,
         patient: {
           type: Object,
-          notify: true,
-          observer: '_updateEntries'
+          notify: true
         },
         entries: Array
-      },
-
-      _updateEntries: function () {
-        if(this.patient){
-        PatientPortal.http.get(`/patients/${this.patient.id}/journalentries`)
-          .then(entries => this.entries = entries);
-        }
       },
 
       _expandIcon: function(expanded){
