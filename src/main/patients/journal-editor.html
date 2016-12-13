@@ -80,7 +80,7 @@
 
         <div class="field">
           <label for="date">Date</label>
-          <vaadin-date-picker id="date" required value="{{model.date}}">
+          <vaadin-date-picker id="date" required value="{{model.date}}"></vaadin-date-picker>
         </div>
 
         <div class="field">
@@ -91,8 +91,8 @@
 
         <div class="field">
           <label for="doctor">Doctor</label>
-          <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="doctor.lastName"
-                            selected-item="{{model.doctor}}" class="input" required></vaadin-combo-box>
+          <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="fullName"
+                            value="{{model.doctor}}" class="input" required></vaadin-combo-box>
         </div>
       </div>
 
@@ -100,7 +100,7 @@
 
       <div class="field stacked centered notes">
         <label for="entry">Notes</label>
-        <textarea id="entry" rows="15" name="entry" value="{{model.entry}}">
+        <textarea id="entry" rows="15" name="entry" value="{{model.text::input}}">
     </textarea>
       </div>
 
@@ -117,32 +117,60 @@
       properties: {
         patient: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: '_patientChanged'
         },
-        model: Object,
+        model: {
+          type: Object
+        },
         route: Object,
         doctors: Array,
         appointmentTypes: {
           type: Array,
-          value: function() {
+          value: function () {
             return [
-              'NEW_PATIENT', 'X_RAY', 'SURGERY', 'FOLLOW_UP'
+              {
+                label: 'New patient',
+                value: 'NEW_PATIENT'
+              }, {
+                label: 'X-ray',
+                value: 'X_RAY'
+              }, {
+                label: 'Surgery',
+                value: 'SURGERY'
+              }, {
+                label: 'Follow up',
+                value: 'FOLLOW_UP'
+              }
             ]
           }
         }
       },
 
-      ready: function(){
+      ready: function () {
         this._getDoctors();
       },
 
-      _getDoctors: function() {
-        PatientPortal.http.get('/doctors')
-          .then(doctors => this.doctors = doctors);
+      _patientChanged: function() {
+        this.model = {
+          date: moment().format('YYYY-MM-DD'),
+          text: ''
+        };
       },
 
+      _getDoctors: function () {
+        PatientPortal.http.get('/doctors')
+        // add fullName property for combobox
+          .then(doctors => this.doctors = doctors.map(doc => doc.fullName = `${doc.lastName}, ${doc.firstName}`));
+      },
 
-      close: function() {
+      save: function () {
+        PatientPortal.http.put(`${this.route.prefix}/journalentries`, this.model)
+          .then(() => this.set('route.path', '/journal'))
+          .catch(err => console.log(err));
+      },
+
+      close: function () {
         this.set('route.path', '/journal');
       }
     });

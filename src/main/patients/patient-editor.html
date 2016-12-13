@@ -95,7 +95,7 @@
 
       <div class="field">
         <label for="gender">Gender</label>
-        <vaadin-combo-box id="gender" items="[[genders]]" item-label-path="label" item-value-path="value" required
+        <vaadin-combo-box id="gender" items="[[genders]]" required value="{{model.gender}}"
                           class="input"></vaadin-combo-box>
       </div>
 
@@ -113,7 +113,7 @@
 
       <div class="field">
         <label for="doctor">Doctor</label>
-        <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="doctor.lastName"
+        <vaadin-combo-box id="doctor" items="[[doctors]]" item-label-path="fullName" item-value-path="id"
                           selected-item="{{model.doctor}}" class="input" required></vaadin-combo-box>
       </div>
 
@@ -146,14 +146,14 @@
           type: Array,
           value: function () {
             return [{
-              value: 'MALE',
-              label: 'Male'
+              label: 'Male',
+              value: 'MALE'
             }, {
-              value: 'FEMALE',
-              label: 'Female'
+              label: 'Female',
+              value: 'FEMALE'
             }, {
-              value: 'OTHER',
-              label: 'Other'
+              label: 'Other',
+              value: 'OTHER'
             }]
           }
         },
@@ -172,25 +172,42 @@
 
       _getDoctors: function () {
         PatientPortal.http.get('/doctors')
-          .then(doctors => this.doctors = doctors);
+        // add fullName property for combobox
+          .then(doctors => {
+            this.doctors = doctors.map(this._addFullNameToDoctor);
+            this.setDoctor();
+          });
       },
 
       _patientChanged: function () {
         if (this.patient) {
           this.model = Object.assign({}, this.patient);
-          this.model.birthDate = moment(this.patient.birthDate).format('YYYY-MM-DD');
+          this.set('model.birthDate', moment(this.patient.birthDate).format('YYYY-MM-DD'));
+          this.setDoctor();
         }
       },
+
+      setDoctor: function () {
+        if(this.patient) {
+          this.set('model.doctor', this._addFullNameToDoctor(this.patient.doctor));
+        }
+      },
+
+      _addFullNameToDoctor: function(doc){
+        doc.fullName = `${doc.lastName}, ${doc.firstName}`;
+        return doc;
+      },
+
 
       _checkFormValidity: function () {
         this.valid = !Polymer.dom(this.root).querySelectorAll('.input').find(input => input.invalid);
       },
 
-      save: function(){
+      save: function () {
         PatientPortal.http.put('/patients')
       },
 
-      close: function() {
+      close: function () {
         this.set('route.path', '/profile');
       }
     });

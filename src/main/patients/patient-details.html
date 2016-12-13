@@ -48,6 +48,7 @@
 
       .content {
         flex: 1;
+        flex-direction: column;
         display: flex;
         overflow-y: scroll;
       }
@@ -65,7 +66,7 @@
     <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}"
                tail="{{subroute}}"></app-route>
 
-    <nav class="details-nav" hidden="[[pageActive(page, 'edit', 'new')]]">
+    <nav class="details-nav" hidden="[[pageActive(page, 'edit', 'new-entry')]]">
       <a on-tap="goBack">
         <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>

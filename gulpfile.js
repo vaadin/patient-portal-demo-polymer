@@ -50,7 +50,6 @@ const images = require('./gulp-tasks/images.js');
 const project = require('./gulp-tasks/project.js');
 const uglify = require('gulp-uglify');
 const babel = require('gulp-babel');
-const eslint = require('gulp-eslint');
 // The source task will split all of your source files into one
 // big ReadableStream. Source files are those in src/** as well as anything
 // added to the sourceGlobs property of polymer.json.
@@ -61,7 +60,6 @@ const eslint = require('gulp-eslint');
 function source() {
   return project.splitSource()
   // Add your own build tasks here!
-    .pipe(gulpif('**/*.js', eslint.format()))
     .pipe(gulpif('**/*.js', babel({
       presets: ['es2015']
     })))
