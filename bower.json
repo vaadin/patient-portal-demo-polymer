@@ -1,7 +1,7 @@
 {
-  "name": "polymer-starter-kit",
+  "name": "patient-portal-polymer",
   "authors": [
-    "The Polymer Authors"
+    "Marcus Hellberg / marcus@vaadin.com"
   ],
   "private": true,
   "dependencies": {

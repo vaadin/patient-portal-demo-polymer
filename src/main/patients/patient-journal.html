@@ -1,6 +1,7 @@
 <link rel="import" href="../../../bower_components/vaadin-grid/vaadin-grid.html">
-<link rel="import" href="../../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../shared/formatters.html">
+<link rel="import" href="../../shared/navigation-helpers.html">
 <dom-module id="patient-journal">
   <template>
     <style include="shared-styles">
@@ -63,24 +64,24 @@
 
     <div class="top">
       <h2>[[patient.firstName]] [[patient.lastName]]</h2>
-      <a class="button primary" routerLink="./new"><iron-icon icon="vaadin-icons:plus"></iron-icon> New entry</a>
+      <a class="button primary" href="new-entry"><iron-icon icon="vaadin-icons:plus"></iron-icon> New entry</a>
     </div>
 
 
-    <vaadin-grid id="patients" items="[[entries]]">
-      <vaadin-grid-column width="40px" flex="0">
+    <vaadin-grid id="grid" items="[[entries]]">
+      <vaadin-grid-column width="50px" flex="0">
         <template class="header"></template>
         <template>
-          <paper-checkbox checked="{{expanded}}"></paper-checkbox>
+          <paper-icon-button icon="[[_expandIcon(expanded)]]" on-tap="_toggleExpand"></paper-icon-button>
         </template>
       </vaadin-grid-column>
 
       <vaadin-grid-column hidden="[[!narrow]]">
-        <template class="header"></template>
+        <template class="header">Journal Entries</template>
         <template>
           <div class="cell-wrapper">
-            <div class="date">{{item.date}}</div>
-            <div class="appointment">{{item.appointmentType}}</div>
+            <div class="date">{{formatDate(item.date)}}</div>
+            <div class="appointment">{{capitalize(item.appointmentType)}}</div>
             <div class="doctor-label">Doctor</div>
             <div class="doctor">{{item.doctor.lastName}}, {{item.doctor.firstName}}</div>
           </div>
@@ -133,6 +134,7 @@
       is: 'patient-journal',
       behaviors: [PatientPortal.Formatters],
       properties: {
+        route: Object,
         patient: {
           type: Object,
           notify: true,
@@ -146,6 +148,22 @@
         PatientPortal.http.get(`/patients/${this.patient.id}/journalentries`)
           .then(entries => this.entries = entries);
         }
+      },
+
+      _expandIcon: function(expanded){
+        return 'vaadin-icons:' + (expanded ? 'chevron-down' : 'chevron-right')
+      },
+
+      _toggleExpand: function(evt) {
+        const item = evt.model.item;
+        if(this.$.grid.expandedItems && this.$.grid.expandedItems.includes(item)){
+          this.$.grid.expandedItems = [];
+        } else {
+          this.$.grid.expandedItems = [item];
+        }
+      },
+      relativeLink: function (path) {
+        return `${this.route.prefix}/${path}`;
       }
     });
   </script>

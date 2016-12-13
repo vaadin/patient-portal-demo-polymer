@@ -1,5 +1,6 @@
 <link rel="import" href="../../../bower_components/vaadin-icons/vaadin-icons.html">
 <link rel="import" href="../../../bower_components/app-route/app-route.html">
+<link rel="import" href="../../shared/navigation-helpers.html">
 <link rel="import" href="patient-profile.html">
 <link rel="import" href="patient-editor.html">
 <link rel="import" href="patient-journal.html">
@@ -64,7 +65,7 @@
     <app-route route="{{route}}" active="{{active}}" pattern="/:page" data="{{routeData}}"
                tail="{{subroute}}"></app-route>
 
-    <nav class="details-nav" hidden="[[_editing(page)]]">
+    <nav class="details-nav" hidden="[[pageActive(page, 'edit', 'new')]]">
       <a on-tap="goBack">
         <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>
@@ -77,16 +78,17 @@
       <a href$="[[_getRelativeLink(route.prefix, 'edit')]]">Edit patient</a>
     </nav>
     <iron-pages class="content" selected="[[page]]" fallback-selection="profile" attr-for-selected="name" role="main">
-      <patient-profile name="profile" patient="[[patient]]"></patient-profile>
-      <patient-journal name="journal" patient="[[patient]]"></patient-journal>
+      <patient-profile name="profile" patient="[[patient]]" route="{{route}}"></patient-profile>
+      <patient-journal name="journal" patient="[[patient]]" route="{{route}}"></patient-journal>
       <patient-editor name="edit" patient="[[patient]]" route="{{route}}"></patient-editor>
-      <journal-editor name="journal/new" patient="[[patient]]" route="{{route}}"></journal-editor>
+      <journal-editor name="new-entry" patient="[[patient]]" route="{{route}}"></journal-editor>
     </iron-pages>
 
   </template>
   <script>
     Polymer({
       is: 'patient-details',
+      behaviors: [PatientPortal.NavHelpers],
       properties: {
         patient: {
           type: Object,
@@ -111,7 +113,7 @@
           ['journal', 'patient-journal.html'],
           ['new', 'patient-editor.html'],
           ['edit', 'patient-editor.html'],
-          ['journal/new', 'journal-editor.html'],
+          ['new-entry', 'journal-editor.html'],
         ]);
       },
 

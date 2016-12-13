@@ -1,7 +1,7 @@
 <link rel="import" href="../../../bower_components/vaadin-grid/vaadin-grid.html">
 <link rel="import" href="../../../bower_components/app-route/app-route.html">
 <link rel="import" href="../../../bower_components/iron-media-query/iron-media-query.html">
-<link rel="import" href="../../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../shared/formatters.html">
 <link rel="import" href="patient-details.html">
 
@@ -56,7 +56,7 @@
     <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}" active="{{routeActive}}"></app-route>
 
     <iron-media-query query="(max-width: 600px)" query-matches="{{narrow}}"></iron-media-query>
-    <vaadin-grid id="patients" items="[[patients]]" selected-item="{{currentPatient}}" on-cell-click="_selectRow">
+    <vaadin-grid id="grid" items="[[patients]]" selected-item="{{currentPatient}}" on-cell-click="_selectRow">
       <template class="row-details">
         <div class="details-row">
           <div class="field">
@@ -78,10 +78,10 @@
         </div>
       </template>
 
-      <vaadin-grid-column width="40px" hidden="[[!narrow]]" flex="0">
+      <vaadin-grid-column width="50px" flex="0" hidden="[[!narrow]]">
         <template class="header"></template>
         <template>
-          <paper-checkbox checked="{{expanded}}"></paper-checkbox>
+          <paper-icon-button icon="[[_expandIcon(expanded)]]" on-tap="_toggleExpand"></paper-icon-button>
         </template>
       </vaadin-grid-column>
 
@@ -203,7 +203,7 @@
       },
 
       _selectPatient: function (patient) {
-        const grid = this.$.patients;
+        const grid = this.$.grid;
         const deselect = grid.selectedItems.includes(patient);
 
         if (deselect) {
@@ -216,6 +216,19 @@
       _detailsOpen: function (currentPatient) {
         let open = currentPatient ? 'open' : '';
         return open;
+      },
+
+      _expandIcon: function(expanded){
+        return 'vaadin-icons:' + (expanded ? 'chevron-down' : 'chevron-right')
+      },
+
+      _toggleExpand: function(evt) {
+        const item = evt.model.item;
+        if(this.$.grid.expandedItems && this.$.grid.expandedItems.includes(item)){
+          this.$.grid.expandedItems = [];
+        } else {
+          this.$.grid.expandedItems = [item];
+        }
       }
     });
   </script>

@@ -3,17 +3,16 @@
   "shell": "src/patient-portal.html",
   "fragments": [
     "src/main/main-view.html",
+    "src/main/not-found-view.html",
     "src/main/patients/patients-view.html",
-    "src/main/patients/patient-details.html",
-    "src/main/analytics/analytics-view.html",
-    "src/main/not-found-view.html"
+    "src/main/analytics/analytics-view.html"
   ],
-  "sourceGlobs": [
+  "sources": [
     "src/**/*",
     "images/**/*",
     "bower.json"
   ],
-  "includeDependencies": [
+  "extraDependencies": [
     "manifest.json",
     "bower_components/webcomponentsjs/webcomponents-lite.min.js",
     "bower_components/fetch/fetch.js",
