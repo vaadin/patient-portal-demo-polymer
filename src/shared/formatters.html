@@ -3,6 +3,9 @@
 <script>
   PatientPortal = PatientPortal || {};
 
+  /**
+   * @polymerBehavior
+   */
   PatientPortal.Formatters = {
     formatDate: function(dateString){
       return moment(dateString).format('L');
