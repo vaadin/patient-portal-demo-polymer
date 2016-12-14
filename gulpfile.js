@@ -15,8 +15,8 @@ const gulp = require('gulp');
 const gulpif = require('gulp-if');
 
 // Got problems? Try logging 'em
-// const logging = require('plylog');
-// logging.setVerbose();
+const logging = require('plylog');
+logging.setVerbose();
 
 // !!! IMPORTANT !!! //
 // Keep the global.config above any of the gulp-tasks that depend on it
