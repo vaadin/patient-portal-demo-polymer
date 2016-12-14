@@ -14,8 +14,8 @@ Make sure you have NPM and installed.
 
 2. Install dependencies
 
-`npm install && bower install`
+`bower install`
 
 3. Run application with development server
 
-`ng serve`
+`polymer serve`
