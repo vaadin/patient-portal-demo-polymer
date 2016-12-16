@@ -23,7 +23,7 @@
     "vaadin-charts": "vaadin/vaadin-charts#^3.2.0",
     "vaadin-icons": "vaadin/vaadin-icons#^2.0.0",
     "app-elements": "polymerelements/app-elements#^0.10.1",
-    "vaadin-grid": "vaadin/vaadin-grid#^2.0.0",
+    "vaadin-grid": "vaadin/vaadin-grid#2.0-fix-build",
     "moment": "^2.17.1",
     "fetch": "^2.0.1"
   },

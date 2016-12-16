@@ -15,8 +15,8 @@ const gulp = require('gulp');
 const gulpif = require('gulp-if');
 
 // Got problems? Try logging 'em
-const logging = require('plylog');
-logging.setVerbose();
+// const logging = require('plylog');
+// logging.setVerbose();
 
 // !!! IMPORTANT !!! //
 // Keep the global.config above any of the gulp-tasks that depend on it
@@ -59,7 +59,7 @@ const babel = require('gulp-babel');
 // which filters all images and runs them through imagemin
 function source() {
   return project.splitSource()
-  // Add your own build tasks here!
+    // Add your own build tasks here!
     .pipe(gulpif('**/*.js', babel({
       presets: ['es2015']
     })))

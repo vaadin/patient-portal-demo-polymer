@@ -2,6 +2,7 @@
   "entrypoint": "index.html",
   "shell": "src/patient-portal.html",
   "fragments": [
+    "src/login-view.html",
     "src/main/main-view.html",
     "src/main/not-found-view.html",
     "src/main/patients/patients-view.html",
