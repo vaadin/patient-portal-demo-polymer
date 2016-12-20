@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["/index.html","935f370030ae37202688a9b7ae999f1f"],["/src/login-view.html","0a48f952fd446065a73ae45b11c484da"],["/src/main/analytics/analytics-view.html","20fb7f64612425f6138f392dda09be70"],["/src/main/main-view.html","4500fb83e0e9fc05b58fd6fe4fe20840"],["/src/main/not-found-view.html","049b0d013e8f9c6a1ca5c374ea60e318"],["/src/main/patients/patients-view.html","9dbbbb1edf817b0827166c074bd41eb5"],["/src/patient-portal.html","6a8f8aef4f99222d45ee6f4083467246"]];
+var precacheConfig = [["./bower_components/fetch/fetch.js","631d98d453b9e5964a6dce5f631f4839"],["./bower_components/moment/min/moment.min.js","561459631a359ce13bdfefca09ebe147"],["./bower_components/webcomponentsjs/webcomponents-lite.min.js","02395895d5d08242c6ba93518a6da2c5"],["./index.html","935f370030ae37202688a9b7ae999f1f"],["./manifest.json","f79dbc737ab7520492de5ef647fd6268"],["./src/login-view.html","0a48f952fd446065a73ae45b11c484da"],["./src/main/analytics/analytics-view.html","20fb7f64612425f6138f392dda09be70"],["./src/main/main-view.html","4500fb83e0e9fc05b58fd6fe4fe20840"],["./src/main/not-found-view.html","049b0d013e8f9c6a1ca5c374ea60e318"],["./src/main/patients/patients-view.html","9dbbbb1edf817b0827166c074bd41eb5"],["./src/patient-portal.html","6a8f8aef4f99222d45ee6f4083467246"]];
 var cacheName = 'sw-precache-v2--' + (self.registration ? self.registration.scope : '');
 
 
