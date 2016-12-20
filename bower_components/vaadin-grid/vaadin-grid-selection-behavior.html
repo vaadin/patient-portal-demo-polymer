@@ -1,0 +1,12 @@
+<html><head><script>window.vaadin=window.vaadin||{},vaadin.elements=vaadin.elements||{},vaadin.elements.grid=vaadin.elements.grid||{},vaadin.elements.grid.SelectionBehavior={properties:{selectedItems:{type:Object,notify:!0,value:function(){return[]}}},observers:["_selectedItemsChanged(selectedItems.*)"],listeners:{"template-instance-changed":"_templateInstanceChangedSelection"},_templateInstanceChangedSelection:function(e){if("selected"===e.detail.prop){var t=e.detail.inst.item;(this._isSelected(t)?this.deselectItem:this.selectItem).bind(this)(t),e.stopPropagation()}},_isSelected:function(e){return this.selectedItems.indexOf(e)>-1},selectItem:function(e){"number"==typeof e&&e>=0&&this.items&&this.items.length>e?this._selectItem(this.items[e]):this._selectItem(e)},_selectItem:function(e){this._isSelected(e)||this.push("selectedItems",e)},deselectItem:function(e){"number"==typeof e&&e>=0&&this.items&&this.items.length>e?this._deselectItem(this.items[e]):this._deselectItem(e)},_deselectItem:function(e){var t=this.selectedItems.indexOf(e);t>-1&&this.splice("selectedItems",t,1)},_selectedItemsChanged:function(e){!this.$.scroller._physicalItems||"selectedItems"!==e.path&&"selectedItems.splices"!==e.path||this.$.scroller._physicalItems.forEach(function(e){e.selected=this._isSelected(e.item)}.bind(this))}};</script>
+
+</head><body><dom-module id="vaadin-grid-selection-styles">
+  <template>
+    <style>
+      tbody tr[selected] td {
+        background-color: rgb(243, 243, 243);
+      }
+    </style>
+  </template>
+</dom-module>
+</body></html>

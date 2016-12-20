@@ -1,0 +1,23 @@
+<html><head></head><body><dom-module id="vaadin-grid-filter">
+  <template>
+    <style>
+      :host {
+        display: inline-flex;
+      }
+
+      #filter {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    </style>
+
+    <content>
+      <input id="filter">
+    </content>
+
+  </template>
+  <script>Polymer({is:"vaadin-grid-filter",properties:{path:String,value:String},listeners:{input:"_onInput"},observers:["_filterChanged(path, value, isAttached)"],_onInput:function(t){this.debounce("input",function(){this.value=t.target.value},200)},_filterChanged:function(t,e,i){i&&this.fire("filter-changed")}});</script>
+</dom-module>
+
+<script>window.vaadin=window.vaadin||{},vaadin.elements=vaadin.elements||{},vaadin.elements.grid=vaadin.elements.grid||{},vaadin.elements.grid.FilterBehavior={properties:{_filters:{value:function(){return[]}}},listeners:{"filter-changed":"_filterChanged"},_filterChanged:function(e){this._filters.indexOf(e.target)===-1&&this._filters.push(e.target),e.stopPropagation(),this.dataSource&&this.clearCache()},_mapFilters:function(){return this._filters.map(function(e){return{path:e.path,value:e.value}})}};</script>
+</body></html>

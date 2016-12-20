@@ -1,6 +1,6 @@
-<link rel="import" href="../../shared/formatters.html">
+<html><head><link rel="import" href="../../shared/formatters.html">
 
-<dom-module id="patient-profile" include="shared-styles">
+</head><body><dom-module id="patient-profile" include="shared-styles">
   <template>
     <style>
       :host {
@@ -110,7 +110,7 @@
     </div>
 
     <table class="patient-data">
-      <tr>
+      <tbody><tr>
         <td class="label">Gender</td>
         <td class="value">[[capitalize(patient.gender)]]</td>
       </tr>
@@ -138,19 +138,9 @@
         <td class="label">Last Visit</td>
         <td class="value">[[formatDate(patient.lastVisit)]]</td>
       </tr>
-    </table>
+    </tbody></table>
 
     <img class="profile-pic" src="[[patient.pictureUrl]]">
   </template>
-  <script>
-    Polymer({
-      is: 'patient-profile', 
-      behaviors: [PatientPortal.Formatters],
-      properties: {
-        patient: {
-          type: Object
-        }
-      }
-    });
-  </script>
-</dom-module>
+  <script>"use strict";Polymer({is:"patient-profile",behaviors:[PatientPortal.Formatters],properties:{patient:{type:Object}}});</script>
+</dom-module></body></html>

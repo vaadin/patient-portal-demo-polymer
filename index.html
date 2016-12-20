@@ -1,7 +1,4 @@
-<!doctype html>
-<html lang="en">
-
-<head>
+<!DOCTYPE html><html lang="en"><head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
@@ -39,58 +36,7 @@
   <!--<link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">-->
 
 
-  <script>
-    // Setup Polymer options
-    window.Polymer = {
-      dom: 'shadow',
-      lazyRegister: true
-    };
-
-    // Load webcomponentsjs polyfill if browser does not support native Web Components
-    (function () {
-      'use strict';
-
-      if (!('fetch' in window)) {
-        let script = document.createElement('script');
-        script.async = true;
-        script.src = '/bower_components/fetch/fetch.js';
-        document.head.appendChild(script);
-      }
-
-      let onload = function () {
-        // For native Imports, manually fire WebComponentsReady so user code
-        // can use the same code path for native and polyfill'd imports.
-        if (!window.HTMLImports) {
-          document.dispatchEvent(
-            new CustomEvent('WebComponentsReady', { bubbles: true })
-          );
-        }
-      };
-
-      let webComponentsSupported = (
-        'registerElement' in document
-        && 'import' in document.createElement('link')
-        && 'content' in document.createElement('template')
-      );
-
-      if (!webComponentsSupported) {
-        let script = document.createElement('script');
-        script.async = true;
-        script.src = '/bower_components/webcomponentsjs/webcomponents-lite.min.js';
-        script.onload = onload;
-        document.head.appendChild(script);
-      } else {
-        onload();
-      }
-    })();
-
-    // Load pre-caching Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/service-worker.js');
-      });
-    }
-  </script>
+  <script>"use strict";window.Polymer={dom:"shadow",lazyRegister:!0},function(){if(!("fetch"in window)){var e=document.createElement("script");e.async=!0,e.src="/bower_components/fetch/fetch.js",document.head.appendChild(e)}var n=function(){window.HTMLImports||document.dispatchEvent(new CustomEvent("WebComponentsReady",{bubbles:!0}))},t="registerElement"in document&&"import"in document.createElement("link")&&"content"in document.createElement("template");if(t)n();else{var o=document.createElement("script");o.async=!0,o.src="/bower_components/webcomponentsjs/webcomponents-lite.min.js",o.onload=n,document.head.appendChild(o)}}(),"serviceWorker"in navigator&&window.addEventListener("load",function(){navigator.serviceWorker.register("/service-worker.js")});</script>
 
 <link rel="import" href="/src/patient-portal.html">
 
@@ -107,6 +53,6 @@
 
 <body>
   <patient-portal></patient-portal>
-</body>
 
-</html>
+
+</body></html>

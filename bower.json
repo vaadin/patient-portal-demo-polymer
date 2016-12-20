@@ -21,9 +21,8 @@
     "vaadin-date-picker": "vaadin/vaadin-date-picker#^1.2.0",
     "vaadin-combo-box": "vaadin/vaadin-combo-box#master",
     "vaadin-charts": "vaadin/vaadin-charts#^3.2.0",
-    "vaadin-icons": "vaadin/vaadin-icons#^2.0.0",
     "app-elements": "polymerelements/app-elements#^0.10.1",
-    "vaadin-grid": "vaadin/vaadin-grid#2.0-fix-build",
+    "vaadin-grid": "vaadin/vaadin-grid#2.0-dev",
     "moment": "^2.17.1",
     "fetch": "^2.0.1"
   },

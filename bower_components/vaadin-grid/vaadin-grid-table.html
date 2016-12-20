@@ -1,0 +1,187 @@
+<html><head><link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../iron-scroll-target-behavior/iron-scroll-target-behavior.html">
+<link rel="import" href="vaadin-grid-table-scroll-behavior.html">
+<link rel="import" href="vaadin-grid-sizer.html">
+<link rel="import" href="vaadin-grid-table-outer-scroller.html">
+<link rel="import" href="vaadin-grid-table-header-footer.html">
+<link rel="import" href="vaadin-grid-table-cell.html">
+<link rel="import" href="vaadin-grid-table-row.html">
+<link rel="import" href="vaadin-grid-row-details-behavior.html">
+<link rel="import" href="vaadin-grid-data-source-behavior.html">
+<link rel="import" href="vaadin-grid-selection-behavior.html">
+<link rel="import" href="iron-list-behavior.html">
+
+</head><body><dom-module id="vaadin-grid-table">
+  <template>
+    <style include="vaadin-grid-table-scroll-styles"></style>
+    <style include="vaadin-grid-row-details-styles"></style>
+    <style include="vaadin-grid-data-source-styles"></style>
+    <style include="vaadin-grid-selection-styles"></style>
+
+    <style>
+      :host {
+        display: block;
+        position: relative;
+      }
+
+      @media only screen and (-webkit-max-device-pixel-ratio: 1) {
+        :host {
+          will-change: transform;
+        }
+      }
+
+      #items {
+        position: relative;
+      }
+
+      #items,
+      #fixedsizer,
+      #outersizer {
+        border-top: 0 solid transparent;
+        border-bottom: 0 solid transparent;
+      }
+
+      :host(:not([grid])) #items > ::content > * {
+        width: 100%;
+      };
+
+      #items > tr {
+        box-sizing: border-box;
+        margin: 0;
+        position: absolute;
+        /* iron-list expects top to be 0. Might cause issues */
+        /*top: 0;*/
+        will-change: transform;
+      }
+
+      table {
+        height: 100%;
+        width: 100%;
+        display: block;
+        overflow: auto;
+        box-sizing: border-box;
+        background: #fff;
+      }
+
+      [overflow-hidden] {
+        overflow: hidden;
+      }
+
+      tbody {
+        display: block;
+      }
+
+      thead th,
+      tfoot td {
+        top: 0;
+        background-color: #fff;
+        font-weight: 500;
+      }
+
+      td, th {
+        background-color: #fff;
+        padding: 0 !important;
+        flex-shrink: 0;
+        flex-grow: 1;
+        flex-basis: 100px;
+        box-sizing: border-box;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* Selector for non-shadow */
+      td::content > .cell-content,
+      th::content > .cell-content,
+      /* Selector for shadow */
+      ::content > .cell-content {
+         padding: 8px;
+         width: 100%;
+         box-sizing: border-box;
+         display: flex;
+         justify-content: center;
+         flex-direction: column;
+         white-space: nowrap;
+       }
+
+      tr:hover td {
+        /*background-color: lightgrey;*/
+      }
+
+      tr:not([hidden]) {
+        display: flex;
+        width: 100%;
+      }
+
+      [frozen] {
+        z-index: 1;
+      }
+
+      [hidden] {
+        display: none;
+      }
+
+      caption {
+        position: absolute;
+        display: block;
+        padding: 0;
+        width: 100%;
+        z-index: -100;
+      }
+
+      ::content > vaadin-grid-column,
+      ::content > vaadin-grid-selection-column,
+      ::content > vaadin-grid-column-group {
+        display: none;
+      }
+
+      /* Theme styles */
+      :host {
+        box-sizing: border-box;
+        border: 1px solid var(--vaadin-grid-border-color);
+      }
+
+      thead[has-templates] tr:last-child th {
+        border-bottom: 1px solid var(--vaadin-grid-border-color);
+      }
+
+      tfoot[has-templates] tr:first-child td {
+        border-top: 1px solid var(--vaadin-grid-border-color);
+      }
+
+      tbody tr td {
+        border-bottom: 1px solid var(--vaadin-grid-border-color);
+      }
+
+      td, th {
+        text-align: left;
+      }
+
+      tr[odd] td {
+      }
+
+      [last-frozen] {
+        border-right: 1px solid var(--vaadin-grid-border-color);
+      }
+    </style>
+    <content select="vaadin-grid-column, vaadin-grid-selection-column, vaadin-grid-column-group"></content>
+    <div id="spinner"></div>
+    <table id="table" class="table table-striped" overflow-hidden$="[[_hideTableOverflow(scrollbarWidth, safari)]]">
+      <caption>
+        <div id="fixedsizer" is="vaadin-grid-sizer" top="[[_estScrollHeight]]" column-tree="[[columnTree]]">
+        </div>
+      </caption>
+      <thead id="header" is="vaadin-grid-table-header" column-tree="[[columnTree]]"></thead>
+      <tbody id="items"></tbody>
+      <tfoot id="footer" is="vaadin-grid-table-footer" column-tree="[[columnTree]]"></tfoot>
+    </table>
+
+    <vaadin-grid-table-outer-scroller id="outerscroller" scroll-target="[[scrollTarget]]" overflow-hidden$="[[_hideOuterScroller(scrollbarWidth, safari)]]" ios$="[[ios]]">
+      <div id="outersizer" is="vaadin-grid-sizer" top="[[_estScrollHeight]]" column-tree="[[columnTree]]"></div>
+    </vaadin-grid-table-outer-scroller>
+
+  </template>
+</dom-module>
+
+<script>Polymer({is:"vaadin-grid-table",behaviors:[vaadin.elements.grid.IronListBehavior,vaadin.elements.grid.TableScrollBehavior,Polymer.Templatizer,Polymer.IronResizableBehavior,Polymer.IronScrollTargetBehavior],properties:{size:Number,columnTree:Array,bindData:Function,rowDetailsTemplate:Object,safari:{value:/^((?!chrome|android).)*safari/i.test(navigator.userAgent)},scrollbarWidth:{value:function(){var t=document.createElement("div");t.style.width="100px",t.style.height="100px",t.style.overflow="scroll",t.style.position="absolute",t.style.top="-9999px",document.body.appendChild(t);var e=t.offsetWidth-t.clientWidth;return document.body.removeChild(t),e}}},observers:["_columnTreeChanged(columnTree, _physicalItems, _physicalCount)","_sizeChanged(size, bindData)","_rowDetailsTemplateChanged(rowDetailsTemplate, _physicalItems, _physicalCount)"],listeners:{"property-changed":"_columnPropChanged"},_columnPropChanged:function(t){"headerTemplate"===t.detail.path&&this.toggleAttribute("has-templates",!0,this.$.header),"footerTemplate"===t.detail.path&&this.toggleAttribute("has-templates",!0,this.$.footer),/frozen|hidden/.test(t.detail.path)&&this._frozenCellsChanged(),"hidden"===t.detail.path&&this.notifyResize()},_hideOuterScroller:function(t,e){return 0===t&&!e},_hideTableOverflow:function(t,e){return 0===t&&e},_rowDetailsTemplateChanged:function(t,e){e.forEach(function(e){e.rowDetailsTemplate=t})},_columnTreeChanged:function(t,e,i){this._frozenCellsChanged(),this._hasTemplatesChanged(t),e.forEach(function(e){e.columns=t[t.length-1]}),Polymer.RenderStatus.afterNextRender(this.$.header,function(){var t=this.$.header.clientHeight+"px",e=this.$.footer.clientHeight+"px";[this.$.outersizer,this.$.fixedsizer,this.$.items].forEach(function(i){i.style.borderTopWidth=t,i.style.borderBottomWidth=e})}.bind(this))},_hasTemplatesChanged:function(t){var e=!1,i=!1;t.forEach(function(t){return t.forEach(function(t){e=e||t.headerTemplate,i=i||t.footerTemplate})}),this.toggleAttribute("has-templates",e,this.$.header),this.toggleAttribute("has-templates",i,this.$.footer)},_createPool:function(t){for(var e=new Array(t),i=0;i<t;i++){var s=document.createElement("tr","vaadin-grid-table-row");s.target=this.domHost,e[i]=s,s.setAttribute("hidden",""),Polymer.dom(this.$.items).appendChild(s)}return e},_sizeChanged:function(t){if(this._virtualStart=0,this._physicalTop=0,this._virtualCount=Math.min(t,1e5),this._physicalIndexForKey={},this._firstVisibleIndexVal=null,this._lastVisibleIndexVal=null,this._vidxOffset=0,this._resetScrollPosition(0),!this._physicalItems){var e=25;this._physicalCount=Math.max(1,Math.min(e,this._virtualCount)),this._physicalItems=this._createPool(this._physicalCount),this._physicalSizes=new Array(this._physicalCount)}this._physicalStart=0,this._itemsRendered=!1,this._debounceTemplate(this._render)},_assignModels:function(t){this._virtualIndexToItem=this._virtualIndexToItem||{},this._iterateItems(function(t,e){var i=this._physicalItems[t];i.index&&delete this._virtualIndexToItem[i.index],i.index=e+this._vidxOffset,this._virtualIndexToItem[i.index]=i,i.toggleAttribute("hidden",i.index>=this.size),this.bindData(i.index,i)},t)},_scrollHandler:function(t){var e,i,s,a,h,l=Math.max(0,Math.min(this._maxScrollTop,this._scrollTop)),r=l-this._scrollPosition,n=this._ratio,o=0,d=this._hiddenContentSize,c=n,_=[];if(this._scrollPosition=l,this._firstVisibleIndexVal=null,this._lastVisibleIndexVal=null,a=this._scrollBottom,h=this._physicalBottom,Math.abs(r)>this._physicalSize)this._physicalTop+=r,o=Math.round(r/this._physicalAverage);else if(r<0){var u=l-this._physicalTop,p=this._virtualStart;for(s=[],i=this._physicalEnd,c=u/d;c<n&&o<this._physicalCount&&p-o>0&&h-this._getPhysicalSizeIncrement(i)>a;)e=this._getPhysicalSizeIncrement(i),c+=e/d,h-=e,s.push(i),o++,i=0===i?this._physicalCount-1:i-1;_=s,o=-o}else if(r>0){var m=h-a,f=this._virtualEnd,y=this._virtualCount-1;for(s=[],i=this._physicalStart,c=m/d;c<n&&o<this._physicalCount&&f+o<y&&this._physicalTop+this._getPhysicalSizeIncrement(i)<l;)e=this._getPhysicalSizeIncrement(i),c+=e/d,this._physicalTop+=e,s.push(i),o++,i=(i+1)%this._physicalCount}this._virtualCount<this.size&&this._adjustVirtualIndexOffset(r),0===o?(h<a||this._physicalTop>l)&&this._increasePoolIfNeeded():(this._virtualStart=this._virtualStart+o,this._physicalStart=this._physicalStart+o,this._update(s,_)),this._translateStationaryElements(),this._scheduleReorder()}});</script>
+</body></html>
