@@ -2,8 +2,7 @@
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/app-route/app-location.html">
 <link rel="import" href="../../bower_components/app-route/app-route.html">
-<link rel="import" href="../../bower_components/vaadin-icons/vaadin-icons.html">
-
+<link rel="import" href="../my-icons.html">
 <dom-module id="main-view">
   <template>
     <style include="shared-styles">
@@ -66,7 +65,7 @@
       <a href="/analytics" class$="[[_isActive('analytics', routeData.page)]]">Analytics</a>
 
       <a class="right" on-tap="_logout">
-        <iron-icon icon="vaadin-icons:sign-out"></iron-icon>
+        <iron-icon icon="sign-out"></iron-icon>
         Logout</a>
 
     </nav>

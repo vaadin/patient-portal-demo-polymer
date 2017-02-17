@@ -1,4 +1,4 @@
-<link rel="import" href="../../../bower_components/vaadin-icons/vaadin-icons.html">
+
 <link rel="import" href="../../../bower_components/app-route/app-route.html">
 <link rel="import" href="../../shared/navigation-helpers.html">
 <link rel="import" href="patient-profile.html">
@@ -68,7 +68,7 @@
 
     <nav class="details-nav" hidden="[[pageActive(page, 'edit', 'new-entry')]]">
       <a on-tap="goBack">
-        <iron-icon icon="vaadin-icons:arrow-long-left"></iron-icon>
+        <iron-icon icon="arrow-long-left"></iron-icon>
         <span class="linktext">All patients</span></a>
       <div class="sub-pages">
         <a href$="[[route.prefix]]/profile"

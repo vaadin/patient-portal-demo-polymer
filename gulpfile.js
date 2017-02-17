@@ -38,7 +38,16 @@ global.config = {
   // Service Worker precache options based on
   // https://github.com/GoogleChrome/sw-precache#options-parameter
   swPrecacheConfig: {
-    navigateFallback: '/index.html'
+    staticFileGlobs: [
+      '/index.html',
+      '/manifest.json',
+      '/bower_components/webcomponentsjs/webcomponents-lite.min.js',
+      '/bower_components/fetch/fetch.js',
+      '/bower_components/moment/min/moment.min.js'
+    ],
+    navigateFallback: '/index.html',
+    stripPrefix: '',
+    replacePrefix: '.'
   }
 };
 
@@ -86,3 +95,10 @@ gulp.task('default', gulp.series([
   project.merge(source, dependencies),
   project.serviceWorker
 ]));
+
+var ghPages = require('gulp-gh-pages');
+
+gulp.task('deploy', function () {
+  return gulp.src('./build/bundled/**/*')
+    .pipe(ghPages());
+});

@@ -15,5 +15,7 @@ module.exports = {
     '/bower_components/fetch/fetch.js',
     '/bower_components/moment/min/moment.min.js'
   ],
-  navigateFallback: '/index.html'
+  navigateFallback: '/index.html',
+  stripPrefix: '',
+  replacePrefix: '.'
 };

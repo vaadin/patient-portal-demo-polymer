@@ -1,6 +1,6 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
 <link rel="import" href="../bower_components/iron-icon/iron-icon.html">
-<link rel="import" href="../bower_components/vaadin-icons/vaadin-icons.html">
+<link rel="import" href="my-icons.html">
 <link rel="import" href="../bower_components/iron-a11y-keys/iron-a11y-keys.html">
 
 <link rel="import" href="shared-styles.html">
@@ -63,7 +63,7 @@
       </div>
       <template is="dom-if" if="{{errorMsg}}">
         <div role="alert" class="alert error">
-          <iron-icon icon="vaadin-icons:lock"></iron-icon>
+          <iron-icon icon="lock"></iron-icon>
           {{errorMsg}}
         </div>
       </template>
