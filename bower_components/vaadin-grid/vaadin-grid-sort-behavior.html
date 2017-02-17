@@ -1,0 +1,70 @@
+<!--
+@license
+Copyright (c) 2016 Vaadin Ltd.
+This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
+--><!--
+
+`vaadin-grid-sorter` is a helper element for the `vaadin-grid` that provides out-of-the-box UI controls,
+visual feedback, and handlers for sorting the grid data.
+
+
+### Styling
+The following custom properties and mixins are available for styling:
+
+Custom property | Description | Default
+----------------|-------------|----------
+`--vaadin-grid-sorter-arrow` | Mixin applied to the arrow | `{}`
+`--vaadin-grid-sorter-order` | Mixin applied to the order | `{}`
+
+--><html><head><link rel="import" href="vaadin-grid-cell-click-behavior.html">
+
+</head><body><dom-module id="vaadin-grid-sorter">
+  <template>
+    <style>
+      :host {
+        display: inline-flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      #indicators {
+        position: relative;
+      }
+
+      :host(:not([direction])) #order,
+      :host(:not([direction])) #indicators::before {
+        opacity: 0.2;
+      }
+
+      #order {
+        position: absolute;
+        right: 0;
+        top: 0;
+        transform: translateY(-4px) scale(0.7);
+        @apply(--vaadin-grid-sorter-order);
+      }
+
+      #indicators::before {
+        content: "▲";
+        display: block;
+        padding: 0 8px;
+        @apply(--vaadin-grid-sorter-arrow);
+      }
+
+      :host([direction=desc]) #indicators::before {
+        transform: rotateZ(180deg);
+      }
+    </style>
+
+    <content></content>
+    <div id="indicators">
+      <div id="order">[[_getDisplayOrder(_order)]]</div>
+    </div>
+
+  </template>
+  <script>Polymer({is:"vaadin-grid-sorter",properties:{path:String,direction:{type:String,reflectToAttribute:!0,notify:!0,value:null},_order:Number},observers:["_propertiesChanged(path, direction, isAttached)"],behaviors:[vaadin.elements.grid.CellClickBehavior],_propertiesChanged:function(e,i,r){r&&this.fire("sorter-changed")},_getDisplayOrder:function(e){return null===e?"":e+1},_cellClick:function(e){"asc"===this.direction?this.direction="desc":"desc"===this.direction?this.direction=null:this.direction="asc"}});</script>
+</dom-module>
+
+<script>window.vaadin=window.vaadin||{},vaadin.elements=vaadin.elements||{},vaadin.elements.grid=vaadin.elements.grid||{},vaadin.elements.grid.SortBehavior={properties:{_sorters:{type:Array,value:function(){return[]}},_previousSorters:{type:Array,value:function(){return[]}}},listeners:{"sorter-changed":"_onSorterChanged"},_onSorterChanged:function(r){var e=r.target;this._removeArrayItem(this._sorters,e),e.direction&&this._sorters.unshift(e),e._order=null,this._sorters.forEach(function(r,e){r._order=this._sorters.length>1?e:null},this),r.stopPropagation(),this.dataSource&&JSON.stringify(this._previousSorters)!==JSON.stringify(this._mapSorters())&&this.clearCache(),this._previousSorters=this._mapSorters()},_mapSorters:function(){return this._sorters.map(function(r){return{path:r.path,direction:r.direction}})},_removeArrayItem:function(r,e){var t=r.indexOf(e);t>-1&&r.splice(t,1)}};</script>
+</body></html>

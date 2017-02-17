@@ -1,5 +1,1 @@
-window.PatientPortal = window.PatientPortal || {};
-
-window.PatientPortal.config = {
-  apiUrl: `//${window.location.hostname}:8080`
-}
+"use strict";window.PatientPortal=window.PatientPortal||{},window.PatientPortal.config={apiUrl:"//"+window.location.hostname+":8080"};

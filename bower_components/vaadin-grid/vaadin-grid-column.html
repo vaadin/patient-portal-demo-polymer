@@ -1,0 +1,57 @@
+<!--
+@license
+Copyright (c) 2016 Vaadin Ltd.
+This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
+--><html><head><link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="vaadin-grid-templatizer.html">
+
+<!--
+
+A `vaadin-grid-column` is used to configure how a column in `vaadin-grid` should look like by using HTML templates.
+A column can have a template for each of the three table sections: header, body and footer.
+
+The `class` attribute is used to differentiate header and footer templates from the body template.
+
+#### Example:
+
+    <vaadin-grid-column>
+      <template class="header">I'm in the header</template>
+      <template>I'm in the body</template>
+      <template class="footer">I'm in the footer</template>
+    </vaadin-grid-column>
+
+-->
+</head><body><dom-module id="vaadin-grid-column">
+</dom-module>
+
+<!--
+
+A `vaadin-grid-column-group` is used to wrap many columns under a common header. It supports nested groups.
+
+The `class` attribute is used to differentiate header and footer templates.
+
+#### Example:
+
+    <vaadin-grid>
+      <vaadin-grid-column-group>
+        <template class="header">I'm in the group header</template>
+        <template class="footer">I'm in the group footer</template>
+        <vaadin-grid-column>
+          <template class="header">I'm in the first header</template>
+          <template>I'm in the first body cell</template>
+          <template class="footer">I'm in the first footer</template>
+        </vaadin-grid-column>
+        <vaadin-grid-column>
+          <template class="header">I'm in the second header</template>
+          <template>I'm in the second body cell</template>
+          <template class="footer">I'm in the second footer</template>
+        </vaadin-grid-column>
+      </vaadin-grid-column-group>
+    </vaadin-grid>
+
+-->
+<dom-module id="vaadin-grid-column-group">
+</dom-module>
+
+<script>window.vaadin=window.vaadin||{},vaadin.elements=vaadin.elements||{},vaadin.elements.grid=vaadin.elements.grid||{},vaadin.elements.grid.ColumnBaseBehavior={properties:{resizable:{type:Boolean,value:function(){var e=Polymer.dom(this).parentNode;if(e&&"vaadin-grid-column-group"===e.localName)return e.resizable}},headerTemplate:{type:Object,value:function(){return this._findTemplate("template.header")||null}},footerTemplate:{type:Object,value:function(){return this._findTemplate("template.footer")||null}},frozen:{type:Boolean,notify:!0,value:!1},_lastFrozen:{type:Boolean,notify:!0,value:!1},_order:Number,_reorderStatus:Boolean},observers:["_footerTemplateChanged(footerTemplate)","_headerTemplateChanged(headerTemplate)","_lastFrozenChanged(_lastFrozen)"],_selectFirstTemplate:function(e){return Polymer.dom(this).querySelectorAll(e).filter(function(e){return e.parentElement===this}.bind(this))[0]},_findTemplate:function(e){var t=this._selectFirstTemplate(e);return t&&this.dataHost&&(t._rootDataHost=this.dataHost._rootDataHost||this.dataHost),t},_headerTemplateChanged:function(e){if(e){var t=new vaadin.elements.grid.Templatizer(this.dataHost);t._instanceProps={},t.template=e}this.fire("property-changed",{path:"headerTemplate",value:e})},_footerTemplateChanged:function(e){if(e){var t=new vaadin.elements.grid.Templatizer(this.dataHost);t._instanceProps={},t.template=e}this.fire("property-changed",{path:"footerTemplate",value:e})},_flexGrowChanged:function(e){this.fire("property-changed",{path:"flexGrow",value:e})},_widthChanged:function(e){this.fire("property-changed",{path:"width",value:e})},_lastFrozenChanged:function(e){this.fire("property-changed",{path:"lastFrozen",value:e})}},vaadin.elements.grid.ColumnBehaviorImpl={properties:{width:{type:String,value:"100px"},flexGrow:{type:Number,value:1},template:{type:Object,value:function(){return this._findTemplate("template:not(.header):not(.footer)")}},hidden:{type:Boolean}},observers:["_flexGrowChanged(flexGrow)","_widthChanged(width)","_templateChanged(template)","_frozenChanged(frozen, isAttached)","_hiddenChanged(hidden)","_orderChanged(_order)","_reorderStatusChanged(_reorderStatus)","_resizableChanged(resizable)"],_frozenChanged:function(e,t){t&&this.fire("property-changed",{path:"frozen",value:e})},_templateChanged:function(e){var t=new vaadin.elements.grid.Templatizer(this.dataHost);Polymer.dom(this.root).appendChild(t),t.template=e,this.fire("property-changed",{path:"template",value:e},{bubbles:!1})},_hiddenChanged:function(e){this.fire("property-changed",{path:"hidden",value:e})},_orderChanged:function(e){this.fire("property-changed",{path:"order",value:e})},_reorderStatusChanged:function(e){this.fire("property-changed",{path:"reorderStatus",value:e})},_resizableChanged:function(e){this.fire("property-changed",{path:"resizable",value:e})}},vaadin.elements.grid.ColumnBehavior=[vaadin.elements.grid.ColumnBaseBehavior,vaadin.elements.grid.ColumnBehaviorImpl],Polymer({is:"vaadin-grid-column",behaviors:[vaadin.elements.grid.ColumnBehavior]}),Polymer({is:"vaadin-grid-column-group",behaviors:[vaadin.elements.grid.ColumnBaseBehavior],properties:{_childColumns:{value:function(){return Polymer.dom(this).querySelectorAll("vaadin-grid-column, vaadin-grid-selection-column")}},flexGrow:{type:Number,readOnly:!0},width:{type:String,readOnly:!0},_visibleChildColumns:Array,hidden:{type:Boolean,notify:!0,readOnly:!0},colSpan:{type:Number,notify:!0,readOnly:!0},_rootColumns:Array},observers:["_updateVisibleChildColumns(_childColumns)","_childColumnsChanged(_childColumns)","_flexGrowChanged(flexGrow)","_widthChanged(width)","_frozenChanged(_childColumns, frozen)","_hiddenChanged(hidden)","_visibleChildColumnsChanged(_visibleChildColumns)","_colSpanChanged(colSpan)","_orderChanged(_order, _rootColumns)","_reorderStatusChanged(_reorderStatus, _rootColumns)","_resizableChanged(resizable, _rootColumns)"],listeners:{"property-changed":"_columnPropChanged"},attached:function(){this._updateFlexAndWidth(this._visibleChildColumns),this._addNodeObserver()},detached:function(){Polymer.dom(this).unobserveNodes(this._observer)},_columnPropChanged:function(e){"hidden"===e.detail.path&&this._updateVisibleChildColumns(this._childColumns),/flexGrow|width|hidden|_childColumns/.test(e.detail.path)&&this._updateFlexAndWidth(this._visibleChildColumns),"frozen"===e.detail.path&&(this.frozen=e.detail.value),"lastFrozen"===e.detail.path&&(this._lastFrozen=e.detail.value)},_orderChanged:function(e,t){if(e){var n=/(0+)$/.exec(e).pop().length,r=~~Math.log10(t.length)+1,a=Math.pow(10,n-r),i=t.slice(0);i[0]&&i[0]._order&&i.sort(function(e,t){return e._order-t._order}),i.forEach(function(t,n){t._order=e+(n+1)*a}),this.fire("property-changed",{path:"order",value:e})}},_reorderStatusChanged:function(e,t){t.forEach(function(t){t._reorderStatus=e}),this.fire("property-changed",{path:"reorderStatus",value:e})},_resizableChanged:function(e,t){t.forEach(function(t){t.resizable=e}),this.fire("property-changed",{path:"resizable",value:e})},_updateVisibleChildColumns:function(e){this._visibleChildColumns=e.filter(function(e){return!e.hidden})},_childColumnsChanged:function(e){this.fire("property-changed",{path:"_childColumns",value:e})},_updateFlexAndWidth:function(e){this._setWidth("calc("+e.reduce(function(e,t){return e+=" + "+(t.width||"0").replace("calc","")},"").substring(3)+")"),this._setFlexGrow(e.reduce(function(e,t){return e+t.flexGrow},0))},_frozenChanged:function(e,t){e.forEach(function(e){e.frozen=t}),this.fire("property-changed",{path:"frozen",value:t})},_hiddenChanged:function(e){this.fire("property-changed",{path:"hidden",value:e})},_visibleChildColumnsChanged:function(e){this._setColSpan(e.length),this._setHidden(0===this.colSpan)},_colSpanChanged:function(e){this.fire("property-changed",{path:"colSpan",value:e})},_addNodeObserver:function(){this._observer=Polymer.dom(this).observeNodes(function(e){this._rootColumns=Polymer.dom(this).children.filter(function(e){return/column/.test(e.localName)});var t=function(e){return e.nodeType===Node.ELEMENT_NODE&&0===e.localName.indexOf("vaadin-grid-column")};(e.addedNodes.filter(t).length>0||e.removedNodes.filter(t).length>0)&&(this._childColumns=Polymer.dom(this).querySelectorAll("vaadin-grid-column"))}.bind(this))}});</script>
+</body></html>

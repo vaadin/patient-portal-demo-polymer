@@ -1,0 +1,13 @@
+<html><head><script>window.vaadin=window.vaadin||{},vaadin.elements=vaadin.elements||{},vaadin.elements.grid=vaadin.elements.grid||{},vaadin.elements.grid.SelectionBehavior={properties:{selectedItems:{type:Object,notify:!0,value:function(){return[]}}},observers:["_selectedItemsChanged(selectedItems.*)"],listeners:{"template-instance-changed":"_templateInstanceChangedSelection"},_templateInstanceChangedSelection:function(e){if("selected"===e.detail.prop){var t=e.detail.inst.item;(this._isSelected(t)?this.deselectItem:this.selectItem).bind(this)(t),e.stopPropagation()}},_isSelected:function(e){return this.selectedItems&&this.selectedItems.indexOf(e)>-1},selectItem:function(e){e=this._takeItem(e),this._isSelected(e)||this.push("selectedItems",e)},deselectItem:function(e){e=this._takeItem(e);var t=this.selectedItems.indexOf(e);t>-1&&this.splice("selectedItems",t,1)},_toggleItem:function(e){e=this._takeItem(e);var t=this.selectedItems.indexOf(e);t===-1?this.selectItem(e):this.deselectItem(e)},_takeItem:function(e){return"number"==typeof e&&e>=0&&this.items&&this.items.length>e?this.items[e]:e},_selectedItemsChanged:function(e){!this.$.scroller._physicalItems||"selectedItems"!==e.path&&"selectedItems.splices"!==e.path||this.$.scroller._physicalItems.forEach(function(e){e.selected=this._isSelected(e.item)}.bind(this))}};</script>
+
+</head><body><dom-module id="vaadin-grid-selection-themability-styles">
+  <template>
+    <style>
+      table tr[selected] .vaadin-grid-cell:not([detailscell]) ::content > .cell-content {
+        background-color: var(--paper-grey-100, rgb(243, 243, 243));
+        @apply(--vaadin-grid-body-row-selected-cell);
+      }
+    </style>
+  </template>
+</dom-module>
+</body></html>

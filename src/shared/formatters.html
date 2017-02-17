@@ -1,24 +1,3 @@
 <html><head><link rel="import" href="moment.html">
 
-<script>
-  PatientPortal = PatientPortal || {};
-
-  /**
-   * @polymerBehavior
-   */
-  PatientPortal.Formatters = {
-    formatDate: function(dateString){
-      return moment(dateString).format('L');
-    }, 
-
-    capitalize: function(value){
-      if (value) {
-        return value.replace(/_/, ' ').toString().split(' ').map(word => {
-          return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase()
-       }).join(' ');
-      } else {
-        return '';
-      }
-    }
-  }
-</script></head><body></body></html>
+<script>"use strict";PatientPortal=PatientPortal||{},PatientPortal.Formatters={formatDate:function(t){return moment(t).format("L")},capitalize:function(t){return t?t.replace(/_/," ").toString().split(" ").map(function(t){return t.substring(0,1).toUpperCase()+t.substring(1).toLowerCase()}).join(" "):""}};</script></head><body></body></html>
