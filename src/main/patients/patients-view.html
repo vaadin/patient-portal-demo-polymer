@@ -18540,7 +18540,7 @@ This program is available under Apache License Version 2.0, available at https:/
     <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}" active="{{routeActive}}"></app-route>
 
     <iron-media-query query="(max-width: 600px)" query-matches="{{narrow}}"></iron-media-query>
-    <vaadin-grid id="grid" data-source="[[_fetchPatients]]" active-item="{{currentPatient}}" page-size="20" size="50">
+    <vaadin-grid id="grid" data-source="[[_fetchPatients]]" active-item="{{currentPatient}}" size="100" page-size="20">
       <template class="row-details">
         <div class="details-row">
           <div class="field">
@@ -18643,7 +18643,8 @@ This program is available under Apache License Version 2.0, available at https:/
               function getSortParams() {
                 return params.sortOrder.map(sortOrder => `sort=${sortOrder.path},${sortOrder.direction}`).join('&');
               }
-              if (callback) PatientPortal.http.get(`/patients/pageable?page=${params.page}&limit=${params.pageSize}&${getSortParams()}`)
+
+              if (callback) PatientPortal.http.get(`/patients?page=${params.page}&limit=${params.pageSize}&${getSortParams()}`)
                 .then(res => {
                   this.$.grid.size = res.totalElements;
                   callback(res.content);
@@ -18696,15 +18697,8 @@ This program is available under Apache License Version 2.0, available at https:/
       },
 
       _updatePatients: function () {
-        PatientPortal.http.get('/patients')
-          .then(p => {
-            this.patients = p;
-            if (this.currentPatient) {
-              this.currentPatient = this.patients.find(p => p.id === this.currentPatient.id);
-            } else {
-              this._setPatientFromURL();
-            }
-          });
+        this.$.grid.clearCache();
+        // TODO: re-select selected item
       },
 
       _selectPatient: function (patient) {
