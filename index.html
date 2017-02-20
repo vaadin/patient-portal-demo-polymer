@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="en"><head>
   <meta charset="utf-8">
+  <base href="/patient-portal-demo-polymer/">
   <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
   <title>Patient Portal</title>
@@ -38,9 +39,9 @@
 
   <script>"use strict";window.Polymer={dom:"shadow",lazyRegister:!0},function(){if(!("fetch"in window)){var e=document.createElement("script");e.async=!0,e.src="bower_components/fetch/fetch.js",document.head.appendChild(e)}var n=function(){window.HTMLImports||document.dispatchEvent(new CustomEvent("WebComponentsReady",{bubbles:!0}))},t="registerElement"in document&&"import"in document.createElement("link")&&"content"in document.createElement("template");if(t)n();else{var o=document.createElement("script");o.async=!0,o.src="bower_components/webcomponentsjs/webcomponents-lite.min.js",o.onload=n,document.head.appendChild(o)}}(),"serviceWorker"in navigator&&window.addEventListener("load",function(){navigator.serviceWorker.register("service-worker.js")});</script>
 
-<link rel="import" href="src/patient-portal.html">
+  <link rel="import" href="src/patient-portal.html">
 
-<style>
+  <style>
     body {
       font-family: 'Ubuntu', sans-serif;
       font-weight: 400;
