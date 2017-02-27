@@ -34,7 +34,7 @@ global.config = {
     bundleType: 'both'
   },
   // Path to your service worker, relative to the build root directory
-  serviceWorkerPath: 'service-worker.js',
+  path: 'service-worker.js',
   // Service Worker precache options based on
   // https://github.com/GoogleChrome/sw-precache#options-parameter
   swPrecacheConfig: {
