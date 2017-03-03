@@ -341,12 +341,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         overflow: auto;
         -webkit-overflow-scrolling: touch;
         z-index: -2;
-
-        /* translate Z needed to be applied to keep scroll bars from disappearing
-        when scrolling on desktop Safari.
-        Also, this rule can't be applied on mobile
-        Safari to keep scroll bars visible in there :-) */
-        transform: translateZ(0);
       }
 
       :host([ios]) table {
@@ -447,6 +441,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // Revisit iron-list-behavior for cleaner fix.
       if (this._vidxOffset + this.lastVisibleIndex === this.size - 1) {
         this.$.table.scrollTop = this.$.table.scrollHeight - this.$.table.offsetHeight;
+        this._scrollHandler();
       }
     },
 
@@ -455,19 +450,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _onWheel: function(e) {
-      if (e.ctrlKey) {
+      if (e.ctrlKey || this._hasScrolledAncestor(e.target, e.deltaX, e.deltaY)) {
         return;
       }
 
       var table = this.$.table;
       var momentum = Math.abs(e.deltaX) + Math.abs(e.deltaY);
 
-      if (
-        (e.deltaY > 0 && table.scrollTop < table.scrollHeight - table.offsetHeight) ||
-        (e.deltaY < 0 && table.scrollTop > 0) ||
-        (e.deltaX > 0 && table.scrollLeft < table.scrollWidth - table.offsetWidth) ||
-        (e.deltaX < 0 && table.scrollLeft > 0)
-      ) {
+      if (this._canScroll(table, e.deltaX, e.deltaY)) {
         e.preventDefault();
         table.scrollTop += e.deltaY;
         table.scrollLeft += e.deltaX;
@@ -480,6 +470,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         e.preventDefault();
       }
       this._previousMomentum = momentum;
+    },
+
+    /**
+     * Determines if the element has an ancestor prior to this
+     * cell content that handles the scroll delta
+     */
+    _hasScrolledAncestor: function(el, deltaX, deltaY) {
+      if (this._canScroll(el, deltaX, deltaY)) {
+        return true;
+      } else if (!el.hasAttribute('data-cell-content-id') && el !== this && el.parentElement) {
+        return this._hasScrolledAncestor(el.parentElement, deltaX, deltaY);
+      }
+    },
+
+    /**
+     * Determines if the the given scroll deltas can be applied to the element
+     * (fully or partially)
+     */
+    _canScroll: function(el, deltaX, deltaY) {
+      return (deltaY > 0 && el.scrollTop < el.scrollHeight - el.offsetHeight) ||
+      (deltaY < 0 && el.scrollTop > 0) ||
+      (deltaX > 0 && el.scrollLeft < el.scrollWidth - el.offsetWidth) ||
+      (deltaX < 0 && el.scrollLeft > 0);
     },
 
     /**
@@ -593,7 +606,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       this._translateStationaryElements();
 
-      this.scrolling = true;
+      if (!this.hasAttribute('reordering')) {
+        this.scrolling = true;
+      }
       this.debounce('vaadin-grid-scrolling', function() {
         this.scrolling = false;
         this._reorderRows();
@@ -702,22 +717,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     _translateStationaryElements: function() {
       if (this.fixedSections) {
         this.$.items.style.transform =
-        this._getTranslate3d(-this._scrollLeft || 0, -this._scrollTop || 0);
+        this._getTranslate(-this._scrollLeft || 0, -this._scrollTop || 0);
 
         this.$.footer.style.transform = this.$.header.style.transform =
-        this._getTranslate3d(-this._scrollLeft || 0, 0);
+        this._getTranslate(-this._scrollLeft || 0, 0);
       } else {
-        this.$.footer.style.transform = this.$.header.style.transform = this._getTranslate3d(0, this._scrollTop);
+        this.$.footer.style.transform = this.$.header.style.transform = this._getTranslate(0, this._scrollTop);
       }
 
-      var frozenCellTransform = this._getTranslate3d(this._scrollLeft, 0);
+      var frozenCellTransform = this._getTranslate(this._scrollLeft, 0);
       for (var i = 0; i < this._frozenCells.length; i++) {
         this._frozenCells[i].style.transform = frozenCellTransform;
       }
     },
 
-    _getTranslate3d: function(x, y) {
-      return 'translate3d(' + x + 'px,' + y + 'px, 0)';
+    _getTranslate: function(x, y) {
+      return 'translate(' + x + 'px,' + y + 'px)';
     }
 
   };
@@ -791,11 +806,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _isFocusable: function(target) {
-      return target.matches &&
-             target.matches(':not([disabled])') &&
-             (target.matches('[tabindex]') ||
-             target.matches('button, input, select, textarea, object, iframe, label') ||
-             target.matches('a[href], area[href]'));
+      var isFocusableElement = Polymer.dom(target.parentNode)
+      .querySelectorAll('[tabindex], button, input, select, textarea, object, iframe, label, a[href], area[href]').indexOf(target) !== -1;
+      return !target.disabled && isFocusableElement;
     }
   };
 </script>
@@ -886,7 +899,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Assigning undefined to element.colSpan will set colSpan attribute to 0
         if (column.colSpan) {
-          this.colSpan = column.colSpan;
+          this.setAttribute('colspan', column.colSpan);
         }
 
         this.listen(column, 'property-changed', '_columnPropChanged');
@@ -904,7 +917,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _columnPropChanged: function(e) {
         if (e.target == this.column) {
-          this[e.detail.path] = e.detail.value;
+          if (e.detail.path === 'colSpan') {
+            this.setAttribute('colspan', e.detail.value);
+          } else {
+            this[e.detail.path] = e.detail.value;
+          }
         }
       },
 
@@ -931,7 +948,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _childColumnsChanged: function(childColumns) {
-        this.colSpan = childColumns.length;
+        this.setAttribute('colspan', childColumns.length);
       },
 
       _toggleContent: function(isAttached, cellContent, insertionPoint) {
@@ -974,9 +991,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.style.height = '';
 
         this._cellContent = document.createElement('div');
+
         this._cellContent.setAttribute('class', 'cell-content');
-        var contentId = target._contentIndex = target._contentIndex + 1 || 0;
+        var contentId = vaadin.elements.grid._contentIndex = vaadin.elements.grid._contentIndex + 1 || 0;
         this._cellContent.setAttribute('data-cell-content-id', contentId);
+        // TODO: maybe change data-cell-content-id attribute to ID with a prefix?
+        this._cellContent.setAttribute('id', 'vaadin-grid-cell-content-' + contentId);
+
         Polymer.dom(this._cellContent).appendChild(this.instance.root);
 
         this._insertionPoint = document.createElement('content');
@@ -1030,10 +1051,108 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ],
 
       listeners: {
-        'track': '_onTrack',
         'mousedown': '_cancelMouseDownOnResize',
         'mousemove': '_enableDrag',
-        'mouseout': '_disableDrag'
+        'mouseout': '_disableDrag',
+        'touchstart': '_onTouchStart',
+        'touchmove': '_onTouchMove',
+        'touchend': '_onTouchEnd',
+        'contextmenu': '_onContextMenu'
+      },
+
+      _onContextMenu: function(e) {
+        if (this._reorderGhost) {
+          e.preventDefault();
+        }
+      },
+
+      _onTouchStart: function(e) {
+        if (e.target !== this._resizeHandle && this.target.columnReorderingAllowed) {
+          this._startReorderTimeout = setTimeout(this._startReorder.bind(this, e), 100);
+        }
+      },
+
+      _startReorder: function(e) {
+        this._reorderGhost = this._getGhost();
+        this._reorderGhost.style.visibility = 'visible';
+
+        var dragStart = new CustomEvent('dragstart', {bubbles: true});
+        this._cellContent.dispatchEvent(dragStart);
+
+        this._reorderXY = {
+          x: e.touches[0].clientX - this.getBoundingClientRect().left,
+          y: e.touches[0].clientY - this.getBoundingClientRect().top
+        };
+
+        this._updateGhostPosition(e.touches[0].clientX, e.touches[0].clientY);
+      },
+
+      _onTouchMove: function(e) {
+        if (this._reorderGhost) {
+          e.preventDefault();
+          var dragOver = new CustomEvent('dragover', {bubbles: true});
+          dragOver.clientX = e.touches[0].clientX;
+          dragOver.clientY = e.touches[0].clientY;
+
+          var target = this._contentFromPoint(dragOver.clientX, dragOver.clientY);
+          if (target) {
+            target.dispatchEvent(dragOver);
+          }
+          this._updateGhostPosition(e.touches[0].clientX, e.touches[0].clientY);
+        } else {
+          clearTimeout(this._startReorderTimeout);
+        }
+      },
+
+      _updateGhostPosition: function(eventClientX, eventClientY) {
+        // This is where we want to position the ghost
+        var targetLeft = eventClientX - this._reorderXY.x;
+        var targetTop = eventClientY - this._reorderXY.y - 50;
+
+        // Current position
+        var _left = parseInt(this._reorderGhost.style.left || 0);
+        var _top = parseInt(this._reorderGhost.style.top || 0);
+
+        // Reposition the ghost
+        var ghostRect = this._reorderGhost.getBoundingClientRect();
+        this._reorderGhost.style.left = _left - (ghostRect.left - targetLeft) + 'px';
+        this._reorderGhost.style.top = _top - (ghostRect.top - targetTop) + 'px';
+      },
+
+      _onTouchEnd: function(e) {
+        clearTimeout(this._startReorderTimeout);
+        if (this._reorderGhost) {
+          e.preventDefault();
+          var event = new CustomEvent('dragend', {bubbles: true});
+          this.dispatchEvent(event);
+          this._reorderGhost.style.visibility = 'hidden';
+          this._reorderGhost = null;
+        }
+      },
+
+      _contentFromPoint: function(x, y) {
+        if (Polymer.Settings.useShadow) {
+          var scroller = this.target.$.scroller;
+          scroller.toggleAttribute('no-content-pointer-events', true);
+          var cell = scroller.root.elementFromPoint(x, y);
+          scroller.toggleAttribute('no-content-pointer-events', false);
+          if (cell && cell.getContentChildren) {
+            return cell.getContentChildren('content')[0];
+          }
+        } else {
+          return document.elementFromPoint(x, y);
+        }
+      },
+
+      _getGhost: function() {
+        var ghost = this.target.$.scroller.$.reorderghost;
+        ghost.innerText = this._cellContent.innerText;
+        var style = window.getComputedStyle(this._cellContent);
+        ['boxSizing', 'display', 'width', 'height', 'background', 'alignItems', 'padding', 'border', 'flex-direction', 'overflow']
+        .forEach(function(propertyName) {
+          ghost.style[propertyName] = style[propertyName];
+        }, this);
+        return ghost;
       },
 
       _enableDrag: function() {
@@ -1057,38 +1176,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (resizable) {
           this._resizeHandle = document.createElement('div');
           this._resizeHandle.classList.add('vaadin-grid-column-resize-handle');
+          this.listen(this._resizeHandle, 'track', '_onTrack');
           Polymer.dom(this).appendChild(this._resizeHandle);
         } else if (this._resizeHandle) {
+          this.unlisten(this._resizeHandle, 'track', '_onTrack');
           Polymer.dom(this).removeChild(this._resizeHandle);
         }
       },
 
       _onTrack: function(e) {
-        if (e.target === this._resizeHandle) {
-          this.columnResizing = true;
+        this.columnResizing = true;
 
-          var column = this.column;
-          // Mind reorder
-          if (column.localName === 'vaadin-grid-column-group') {
-            column = column._childColumns.slice(0)
-            .sort(function(a, b) {
-              return a._order - b._order;
-            })
-            .pop();
-          }
-
-          var targetCell = this._getHeaderCellByColumn(column);
-          if (targetCell.offsetWidth) {
-            var style = window.getComputedStyle(targetCell._cellContent);
-            var minWidth = 10 + parseInt(style.paddingLeft) + parseInt(style.paddingRight);
-            column.width = Math.max(minWidth, targetCell.offsetWidth + e.detail.x - targetCell.getBoundingClientRect().right) + 'px';
-            column.flexGrow = 0;
-          }
+        // Get the target column to resize
+        var column = this.column;
+        if (column.localName === 'vaadin-grid-column-group') {
+          column = column._childColumns.slice(0)
+          .sort(function(a, b) {
+            return a._order - b._order;
+          })
+          .filter(function(column) {
+            return !column.hidden;
+          }).pop();
         }
+        var targetCell = this._getHeaderCellByColumn(column);
+
+        // Resize the target column
+        if (targetCell.offsetWidth) {
+          var style = window.getComputedStyle(targetCell._cellContent);
+          var minWidth = 10 + parseInt(style.paddingLeft) + parseInt(style.paddingRight);
+          column.width = Math.max(minWidth, targetCell.offsetWidth + e.detail.x - targetCell.getBoundingClientRect().right) + 'px';
+          column.flexGrow = 0;
+        }
+
+        // Fix width and flex-grow for all preceding columns
+        var thead = this.parentElement.parentElement;
+        Polymer.dom(thead).querySelectorAll('tr:last-child th')
+        .sort(function(a, b) {
+          return a.column._order - b.column._order;
+        })
+        .forEach(function(cell, index, array) {
+          if (index < array.indexOf(targetCell)) {
+            cell.column.width = cell.offsetWidth + 'px';
+            cell.column.flexGrow = 0;
+          }
+        });
 
         if (this.columnResizing && e.detail.state === 'end') {
           this.columnResizing = false;
         }
+
+        this.fire('column-resizing');
       },
 
       _getHeaderCellByColumn: function(column) {
@@ -1163,13 +1300,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         position: relative;
         width: 100%;
         visibility: hidden;
-        line-height: 0;
       }
 
       .cell {
         display: block;
         flex-shrink: 0;
-        transform: translateY(-1em);
+        line-height: 0;
+        font-size: 1px;
+        margin-top: -1em;
+      }
+
+      .cell[hidden] {
+        display: none;
       }
     </style>
 
@@ -1321,7 +1463,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _focusedCellIndex: Number
     },
 
-    observers: ['_focusedCellChanged(_focusedRowIndex, _focusedCellIndex)'],
+    observers: ['_announceFocusedCell(_focusedCell, focused)', '_focusedCellChanged(_focusedRowIndex, _focusedCellIndex)'],
+
+    _announceFocusedCell: function(cell, focused) {
+      // changing activeTarget steals focus so we don't want to do that while interacting with
+      // cell contents.
+      // TODO: remember to change activeTarget when navigation mode is activated back.
+      if (!this.domHost.navigating || !focused) {
+        return;
+      }
+      // note: VoiceOver doesn't work with dynamic IDs.
+      switch(this.is) {
+        case 'vaadin-grid-table-header':
+          this.domHost.$.headerFocusTrap.activeTarget = cell._cellContent.id;
+          break;
+        case 'vaadin-grid-table-body':
+          var index = Polymer.dom(cell.parentElement).querySelectorAll('td').indexOf(cell);
+          var lastHeaderRow = this.domHost.$.header.lastElementChild;
+          var headerCell = lastHeaderRow.children[index];
+
+          // note: having `cell.column.name` property for announcing would maybe be a good option here?
+          this.domHost.$.bodyFocusTrap.activeTarget = cell.hasAttribute('detailscell') ?
+            cell._cellContent.id : headerCell._cellContent.id + ' ' + cell._cellContent.id;
+
+          break;
+        case 'vaadin-grid-table-footer':
+          this.domHost.$.footerFocusTrap.activeTarget = cell._cellContent.id;
+          break;
+      }
+    },
 
     _focusedCellChanged: function(rowIndex, cellIndex) {
       Polymer.dom(this).children.forEach(function(row, i) {
@@ -1340,6 +1510,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     focusLeft: function() {
+      if (this._focusedCell.hasAttribute('detailscell')) {
+        return;
+      }
+
       var visibleCells = this._visibleCellIndexes();
       if (visibleCells.length > 0) {
         var current = visibleCells.indexOf(this._focusedCellIndex);
@@ -1356,7 +1530,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (this._focusedRow && this._focusedRow.children) {
         var children = this._focusedRow.children;
         for(var i = 0; i < children.length; i++) {
-          if (!children[i].hidden) {
+          if (!children[i].hidden && children[i] !== this._focusedRow._rowDetailsCell) {
             indexes.push(i);
           }
         }
@@ -1378,6 +1552,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     focusRight: function() {
+      if (this._focusedCell.hasAttribute('detailscell')) {
+        return;
+      }
+
       var visibleCells = this._visibleCellIndexes();
       if (visibleCells.length > 0) {
         var current = visibleCells.indexOf(this._focusedCellIndex);
@@ -1390,6 +1568,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     focusHome: function() {
+      if (this._focusedCell.hasAttribute('detailscell')) {
+        return;
+      }
+
       var visibleCells = this._visibleCellIndexes();
       if (visibleCells.length > 0) {
         this._focusedCellIndex = visibleCells[0];
@@ -1397,6 +1579,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     focusEnd: function() {
+      if (this._focusedCell.hasAttribute('detailscell')) {
+        return;
+      }
+
       var visibleCells = this._visibleCellIndexes();
       if (visibleCells.length > 0) {
         this._focusedCellIndex = visibleCells[visibleCells.length - 1];
@@ -1473,12 +1659,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       extends: 'tbody',
       behaviors: [vaadin.elements.grid.FocusableCellContainerBehavior],
 
+      observers: ['_announceFocusedRow(_focusedRow)'],
+
+      _announceFocusedRow: function(row) {
+        this.fire('iron-announce', {
+          text: 'Row ' + (row.index + 1) + ' of ' + this.domHost.size
+        });
+      },
+
+      _moveFocusToDetailsCell: function() {
+        this._focusedCell.focused = false;
+        this._focusedRow._rowDetailsCell.focused = true;
+        this._focusedCell = this._focusedRow._rowDetailsCell;
+      },
+
+      _focusedRowHasDetailsCell: function() {
+        return this._focusedRow &&
+          this._focusedRow._rowDetailsCell &&
+          this._focusedCell !== this._focusedRow._rowDetailsCell;
+      },
+
       focusDown: function() {
-        this._focusedRowIndex = Math.min(this._focusedRowIndex + 1, this.domHost.size - 1);
+        if (this._focusedRowHasDetailsCell()) {
+          this._moveFocusToDetailsCell();
+        } else {
+          this._focusedRowIndex = Math.min(this._focusedRowIndex + 1, this.domHost.size - 1);
+        }
       },
 
       focusUp: function() {
-        this._focusedRowIndex = Math.max(0, this._focusedRowIndex - 1);
+        if (this._focusedRow &&
+          this._focusedCell === this._focusedRow._rowDetailsCell) {
+          this._focusedCellChanged(this._focusedRowIndex, this._focusedCellIndex);
+        } else {
+          this._focusedRowIndex = Math.max(0, this._focusedRowIndex - 1);
+
+          if (this._focusedRowHasDetailsCell()) {
+            this._moveFocusToDetailsCell();
+          }
+        }
       },
 
       focusLast: function() {
@@ -1495,7 +1714,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this._focusedCell = row.children[cellIndex];
           }
 
-          row.cells.forEach(function(cell, idx) {
+          row.iterateCells(function(cell, idx) {
             cell.focused = idx === cellIndex;
           });
         }.bind(this));
@@ -1513,7 +1732,89 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     });
   })();
-</script><dom-module id="vaadin-grid-table-row" assetpath="/"></dom-module>
+</script><dom-module id="vaadin-grid-table-focus-trap" assetpath="/">
+  <template>
+    <style>
+     :host(:focus),
+     .primary:focus,
+     ::content .primary:focus,
+     .secondary:focus,
+     ::content .secondary:focus {
+       outline: none;
+     }
+    </style>
+
+    <!-- trap needs to have content in order for Safari to scroll the page when focused -->
+    <div class="primary" tabindex="0" role="gridcell" on-focus="_onFocusin" on-blur="_onFocusout"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
+    <div class="secondary" tabindex="-1" role="gridcell" on-focus="_onFocusin" on-blur="_onFocusout"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
+
+    <slot></slot>
+  </template>
+  <script>
+    Polymer({
+      is: 'vaadin-grid-table-focus-trap',
+
+      hostAttributes: {
+        'tabindex': -1,
+        'role': 'gridcell' // gridcell roles are for VoiceOver to announce "you're in a cell"
+      },
+
+      listeners: {
+        'focus': '_onFocus'
+      },
+
+      properties: {
+        activeTarget: {
+          type: String,
+          observer: '_activeTargetChanged'
+        }
+      },
+
+      ready: function() {
+        this._primary = Polymer.dom(this.root).querySelector('.primary');
+        this._secondary = Polymer.dom(this.root).querySelector('.secondary');
+
+        // In native shadow, focus traps need to be inside the same scope as
+        // the "labelled by" elements
+        if (Polymer.Settings.useNativeShadow) {
+          Polymer.dom(this).appendChild(this._primary);
+          Polymer.dom(this).appendChild(this._secondary);
+        }
+      },
+
+      _onFocus: function(e) {
+        this._primary.focus();
+      },
+
+      _onFocusin: function(e) {
+        // TODO: remove this custom event after FF52 with native focusin support
+        // is in use.
+        this.fire('focusin');
+
+        this._focused = e.target;
+      },
+
+      _onFocusout: function(e) {
+        // TODO: remove this custom event after FF52 with native focusout support
+        // is in use.
+        this.fire('focusout');
+      },
+
+      _activeTargetChanged: function(target) {
+        // moving focus seems to be the most reliable way to get different screenreaders
+        // to announce the "aria-labelledby" property
+        if (this._focused === this._primary) {
+          this._secondary.setAttribute('aria-labelledby', target);
+          this._secondary.focus();
+        } else {
+          this._primary.setAttribute('aria-labelledby', target);
+          this._primary.focus();
+        }
+      }
+    });
+  </script>
+</dom-module>
+<dom-module id="vaadin-grid-table-row" assetpath="/"></dom-module>
 <dom-module id="vaadin-grid-table-header-row" assetpath="/"></dom-module>
 
 <script>
@@ -1597,7 +1898,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else {
           if (this._rowDetailsCell) {
             Polymer.dom(this.root).removeChild(this._rowDetailsCell);
-            this.style.paddingBottom = '';
             this._rowDetailsCell = null;
           }
         }
@@ -1625,9 +1925,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _rowDetailsCellIndexChanged: function(_rowDetailsCell, index, target) {
         if (_rowDetailsCell) {
           _rowDetailsCell.index = index;
-          this.style.paddingBottom = _rowDetailsCell.style.height = _rowDetailsCell.clientHeight + 'px';
+
+          Polymer.dom.flush();
+          this.updateRowDetailsCellMetrics();
+        } else {
+          this.style.paddingBottom = '';
         }
       },
+
+      updateRowDetailsCellMetrics: function() {
+        if (this._rowDetailsCell) {
+          this._rowDetailsCell.style.height = ''; // Reset previous height
+          this.style.paddingBottom = this._rowDetailsCell.style.height = this._rowDetailsCell.clientHeight + 'px';
+        }
+      },
+
 
       _columnsChanged: function(columns, target) {
         Polymer.dom(this).innerHTML = '';
@@ -1916,11 +2228,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     observers: [
-      '_expandedItemsChanged(expandedItems.*, dataSource)',
+      '_expandedItemsChanged(expandedItems.*, dataProvider)',
       '_rowDetailsTemplateChanged(_rowDetailsTemplate)'
     ],
 
-    _expandedItemsChanged: function(expandedItems, dataSource) {
+    _expandedItemsChanged: function(expandedItems, dataProvider) {
       this._flushItemsDebouncer();
       if (this.$.scroller._physicalItems) {
         this.$.scroller._physicalItems.forEach(function(row) {
@@ -1980,22 +2292,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   };
 </script>
-<dom-module id="vaadin-grid-data-source-styles" assetpath="/">
-  <template>
-    <style>
-      :host(:not([has-data])) tbody tr::after {
-        /* A placeholder for empty rows.
-        Content must include (any) text so it derives any possible style
-        rules affecting text height. */
-        content: "-";
-        visibility: hidden;
-        width: 0;
-        padding: 8px 0;
-      }
-    </style>
-  </template>
-</dom-module>
-<dom-module id="vaadin-grid-data-source-themability-styles" assetpath="/">
+<dom-module id="vaadin-grid-data-provider-themability-styles" assetpath="/">
   <template>
     <style>
 
@@ -2059,9 +2356,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   vaadin.elements.grid = vaadin.elements.grid || {};
 
   /**
-   * @polymerBehavior vaadin.elements.grid.DataSourceBehavior
+   * @polymerBehavior vaadin.elements.grid.DataProviderBehavior
    */
-  vaadin.elements.grid.DataSourceBehavior = {
+  vaadin.elements.grid.DataProviderBehavior = {
 
     listeners: {
       'item-changed': '_templateItemChanged'
@@ -2070,7 +2367,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     properties: {
 
       /**
-       * Number of items fetched at a time from the datasource.
+       * Number of items fetched at a time from the dataprovider.
        */
       pageSize: {
         type: Number,
@@ -2079,20 +2376,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Function that provides items lazily. Receives parameters `params`, `callback`
+       * Function that provides items lazily. Receives parameters `opts`, `callback`
        *
-       * `params.page` Requested page index
+       * `opts.page` Requested page index
        *
-       * `params.pageSize` Current page size
+       * `opts.pageSize` Current page size
+       *
+       * `opts.filters` Currently applied filters
+       *
+       * `opts.sortOrder` Currently applied sorting order
+       *
        */
-      dataSource: {
+      dataProvider: {
         type: Function,
         notify: true,
-        observer: '_dataSourceChanged'
+        observer: '_dataProviderChanged'
       },
 
       /**
-       * `true` while data is being requested from the data source.
+       * `true` while data is being requested from the data provider.
        */
       _loading: Boolean,
 
@@ -2150,7 +2452,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // debouncing only when data is needed to be fetched. eager loading
         // should somewhat prevent from getting here when scrolling slowly.
         this.debounce('load', function() {
-          uncachedPages.forEach(this._loadPage.bind(this));
+          uncachedPages.forEach(function(i) {
+            this._loadPage(i);
+          }.bind(this));
         }, 100);
       }
     },
@@ -2212,17 +2516,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (row) {
           this._updateItem(row, items[i]);
 
-          // update heights if any of the items change.
-          // TODO: in a way these should be obsolete, since _update() is called
-          // on scrollHandler every time tiles are recycled. And the function we
-          // are currently in is called as a result from calling assignModels when
-          // tiles are being recycled. I really should draw a diagram of all this.
-          if (!this.$.scroller.hasAttribute('has-data')) {
-            // First set of actual data set to rows, have average height re-measured
-            this.$.scroller._resetAverage();
-            this.$.scroller.toggleAttribute('has-data', true);
-          }
-
           this.debounce('update-heights', function() {
             this.$.scroller._updateMetrics();
             this.$.scroller._positionItems();
@@ -2232,10 +2525,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     },
 
-    _loadPage: function(page) {
+    _loadPage: function(page, cb) {
+      cb = cb || this._updateItems.bind(this);
       if (!this._cache[page]) {
         // make sure same page isn't requested multiple times.
-        if (!this._pendingRequests[page] && this.dataSource) {
+        if (!this._pendingRequests[page] && this.dataProvider) {
           this._pendingRequests[page] = true;
           var opts = {
             page: page,
@@ -2243,10 +2537,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             sortOrder: this._mapSorters(),
             filters: this._mapFilters()
           };
-          this.dataSource(opts, function(items) {
+          this.dataProvider(opts, function(items) {
             this._cache[page] = items;
             delete this._pendingRequests[page];
-            this._updateItems(page, items);
+            cb(page, items);
 
             this._loading = this._pendingRequests.length > 0;
           }.bind(this));
@@ -2259,12 +2553,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     /**
-     * Clears the cached pages and reloads data from datasource when needed.
+     * Clears the cached pages and reloads data from dataprovider when needed.
      */
     clearCache: function() {
       this._cache = {};
       this._pendingRequests = {};
-      this.$.scroller._update();
+      if (this.$.scroller.hasData) {
+        this.$.scroller._update();
+      }
       this._flushItemsDebouncer();
     },
 
@@ -2278,9 +2574,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     },
 
-    _dataSourceChanged: function(dataSource, oldDataSource) {
-      if (oldDataSource !== undefined) {
+    _dataProviderChanged: function(dataProvider, oldDataProvider) {
+      if (oldDataProvider !== undefined) {
         this.clearCache();
+      }
+
+      if (!this.$.scroller.hasData) {
+        // load data before adding rows to make sure they have content when
+        // rendered for the first time.
+        this._loading = true;
+        this._loadPage(0, function() {
+          this.$.scroller.hasData = true;
+        }.bind(this));
       }
     }
 
@@ -2322,6 +2627,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       if (e.detail.prop === 'selected') {
         var item = e.detail.inst.item;
         (this._isSelected(item) ? this.deselectItem : this.selectItem).bind(this)(item);
+
+        this.fire('iron-announce', {
+          text: (this._isSelected(item) ? 'Selected' : 'Deselected') + ' Row ' + (e.detail.inst.index + 1) + ' of ' + this.size
+        });
 
         // stop this internal event from propagating outside.
         e.stopPropagation();
@@ -2407,13 +2716,130 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
   </template>
 </dom-module>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+--><!--
+`iron-a11y-announcer` is a singleton element that is intended to add a11y
+to features that require on-demand announcement from screen readers. In
+order to make use of the announcer, it is best to request its availability
+in the announcing element.
+
+Example:
+
+    Polymer({
+
+      is: 'x-chatty',
+
+      attached: function() {
+        // This will create the singleton element if it has not
+        // been created yet:
+        Polymer.IronA11yAnnouncer.requestAvailability();
+      }
+    });
+
+After the `iron-a11y-announcer` has been made available, elements can
+make announces by firing bubbling `iron-announce` events.
+
+Example:
+
+    this.fire('iron-announce', {
+      text: 'This is an announcement!'
+    }, { bubbles: true });
+
+Note: announcements are only audible if you have a screen reader enabled.
+
+@group Iron Elements
+@demo demo/index.html
+-->
+
+<dom-module id="iron-a11y-announcer" assetpath="../../../bower_components/iron-a11y-announcer/">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+        position: fixed;
+        clip: rect(0px,0px,0px,0px);
+      }
+    </style>
+    <div aria-live$="[[mode]]">[[_text]]</div>
+  </template>
+
+  <script>
+
+    (function() {
+      'use strict';
+
+      Polymer.IronA11yAnnouncer = Polymer({
+        is: 'iron-a11y-announcer',
+
+        properties: {
+
+          /**
+           * The value of mode is used to set the `aria-live` attribute
+           * for the element that will be announced. Valid values are: `off`,
+           * `polite` and `assertive`.
+           */
+          mode: {
+            type: String,
+            value: 'polite'
+          },
+
+          _text: {
+            type: String,
+            value: ''
+          }
+        },
+
+        created: function() {
+          if (!Polymer.IronA11yAnnouncer.instance) {
+            Polymer.IronA11yAnnouncer.instance = this;
+          }
+
+          document.body.addEventListener('iron-announce', this._onIronAnnounce.bind(this));
+        },
+
+        /**
+         * Cause a text string to be announced by screen readers.
+         *
+         * @param {string} text The text that should be announced.
+         */
+        announce: function(text) {
+          this._text = '';
+          this.async(function() {
+            this._text = text;
+          }, 100);
+        },
+
+        _onIronAnnounce: function(event) {
+          if (event.detail && event.detail.text) {
+            this.announce(event.detail.text);
+          }
+        }
+      });
+
+      Polymer.IronA11yAnnouncer.instance = null;
+
+      Polymer.IronA11yAnnouncer.requestAvailability = function() {
+        if (!Polymer.IronA11yAnnouncer.instance) {
+          Polymer.IronA11yAnnouncer.instance = document.createElement('iron-a11y-announcer');
+        }
+
+        document.body.appendChild(Polymer.IronA11yAnnouncer.instance);
+      };
+    })();
+
+  </script>
+</dom-module>
 <dom-module id="vaadin-grid-navigation-themability-styles" assetpath="/">
   <template>
     <style>
-      :host(:focus),
-      #headerFocusTrap:focus,
-      #bodyFocusTrap:focus,
-      #footerFocusTrap:focus {
+      :host(:focus) {
         outline: none;
       }
 
@@ -2436,7 +2862,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   vaadin.elements.grid.KeyboardNavigationBehaviorImpl = {
     hostAttributes: {
       // keys can be listened only when vaadin-grid is focusable
-      'tabindex': -1
+      'tabindex': -1,
+      'role': 'application'
     },
 
     keyBindings: {
@@ -2459,16 +2886,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     attached: function() {
-      this.addEventListener('blur', this._onBlur, true);
-    },
-
-    detached: function() {
-      this.removeEventListener('blur', this._onBlur, true);
-    },
-
-    _onBlur: function(e) {
-      this.$.scroller.navigating = false;
-      this.$.scroller.interacting = false;
+      Polymer.IronA11yAnnouncer.requestAvailability();
     },
 
     _onEnd: function(e) {
@@ -2577,6 +2995,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }).length > 0;
     },
 
+    _onFocusout: function(e) {
+      this.navigating = false;
+      this.interacting = false;
+    },
+
     _onHeaderFocus: function(e) {
       this.navigating = true;
       this.interacting = false;
@@ -2594,12 +3017,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _onFooterFocus: function(e) {
-      this.navigating = true;
-      this.interacting = false;
-      var container = this._isFooterVisible() ? this.$.footer : this.$.items;
-      container._focusedCellIndex = container._focusedCellIndex || 0;
-      container._focusedRowIndex = container._focusedRowIndex || 0;
-      this._virtualFocus = container;
+      if (this._isFooterVisible()) {
+        this.navigating = true;
+        this.interacting = false;
+
+        this.$.footer._focusedCellIndex = this.$.footer._focusedCellIndex || 0;
+        this.$.footer._focusedRowIndex = this.$.footer._focusedRowIndex || 0;
+        this._virtualFocus = this.$.footer;
+      } else if (!this._virtualFocus) {
+        this.$.bodyFocusTrap.focus();
+      }
     },
 
     _virtualFocusChanged: function(virtualFocus, oldVirtualFocus) {
@@ -2675,6 +3102,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             e.preventDefault();
             break;
           case this.$.header:
+            this.$.headerFocusTrap.focus();
             this._virtualFocus = null;
             break;
         }
@@ -2705,8 +3133,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusDown();
       this.navigating = true;
+      this._virtualFocus.focusDown();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2726,6 +3154,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
+      this.navigating = true;
       if (this._virtualFocus === this.$.items) {
         var prevLastVisible = this.lastVisibleIndex;
         this._scrollPageDown();
@@ -2735,7 +3164,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       } else {
         this._virtualFocus.focusPageDown();
       }
-      this.navigating = true;
     },
 
     _scrollPageUp: function() {
@@ -2753,6 +3181,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
+      this.navigating = true;
       if (this._virtualFocus === this.$.items) {
         var prevLastVisibleIndex = this.lastVisibleIndex;
         this._scrollPageUp();
@@ -2762,7 +3191,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       } else {
         this._virtualFocus.focusPageUp();
       }
-      this.navigating = true;
     },
 
     _onArrowUp: function(e) {
@@ -2772,8 +3200,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusUp();
       this.navigating = true;
+      this._virtualFocus.focusUp();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2785,8 +3213,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusRight();
       this.navigating = true;
+      this._virtualFocus.focusRight();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2798,8 +3226,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusLeft();
       this.navigating = true;
+      this._virtualFocus.focusLeft();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2811,8 +3239,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusHome();
       this.navigating = true;
+      this._virtualFocus.focusHome();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2824,8 +3252,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusEnd();
       this.navigating = true;
+      this._virtualFocus.focusEnd();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2840,9 +3268,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _onEnter: function(e) {
-      if(!this.interacting) {
+      if (!this.interacting) {
         e.preventDefault();
         this._moveFocusToFocusTarget();
+      } else if (e.detail.keyboardEvent.target.localName === 'input' &&
+                 e.detail.keyboardEvent.target.type === 'text') {
+        this.interacting = false;
+        this._onTab(e); // revert to navigation
       }
     },
 
@@ -2872,8 +3304,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusFirst();
       this.navigating = true;
+      this._virtualFocus.focusFirst();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2885,8 +3317,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       e.preventDefault();
 
-      this._virtualFocus.focusLast();
       this.navigating = true;
+      this._virtualFocus.focusLast();
 
       this._ensureVirtualFocusInViewport();
     },
@@ -2919,6 +3351,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       container._focusedRowIndex = rowIndex;
       container._focusedCellIndex = Polymer.dom(row).children.indexOf(cell);
       this._virtualFocus = container;
+
+      if (cell.hasAttribute('detailscell')) {
+        container._focusedCellIndex = 0;
+        container._moveFocusToDetailsCell();
+      }
     },
 
 
@@ -2948,6 +3385,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else if (elementRect.top < minTop) {
           this.$.table.scrollTop += (elementRect.top - minTop);
         }
+      }
+
+      // skip horizontal scrolling when focusing on row details cell to avoid
+      // unintentional scrolling.
+      if (element.hasAttribute('detailscell')) {
+        return;
       }
 
       // Horizontal
@@ -3057,9 +3500,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._setSiblingsReorderStatus(this._draggedColumn, 'allowed');
         this._draggedColumn._reorderStatus = 'dragging';
 
-        // Need to set any data to enable D&D on Firefox
-        e.dataTransfer.setData('text', '');
-        e.dataTransfer.effectAllowed = 'move';
+        if (e.dataTransfer) {
+          // Need to set any data to enable D&D on Firefox
+          e.dataTransfer.setData('text', '');
+          e.dataTransfer.effectAllowed = 'move';
+        }
 
         this._autoScroller();
       }
@@ -3744,10 +4189,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var y = this._physicalTop;
 
         this._iterateItems(function(pidx, vidx) {
-
-          this.translate3d(0, y + 'px', 0, this._physicalItems[pidx]);
+          this._physicalItems[pidx].style.transform = this._getTranslate(0, y);
           y += this._physicalSizes[pidx];
-
         });
 
       },
@@ -3876,7 +4319,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _resizeHandler: function() {
         // iOS fires the resize event when the address bar slides up
         if (IOS && Math.abs(this._viewportHeight - this._scrollTargetHeight) < 100) {
-          return;
+          // return;
         }
         // In Desktop Safari 9.0.3, if the scroll bars are always shown,
         // changing the scroll position from a resize handler would result in
@@ -3923,7 +4366,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    */
   vaadin.elements.grid.IronListBehavior = [
     Polymer.Templatizer,
-    Polymer.IronResizableBehavior,
     Polymer.IronScrollTargetBehavior,
     vaadin.elements.grid.IronListBehaviorImpl
   ];
@@ -3940,7 +4382,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
         position: relative;
-        animation: 0 appear;
+        animation: 1ms appear;
       }
 
       @media only screen and (-webkit-max-device-pixel-ratio: 1) {
@@ -3968,9 +4410,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         box-sizing: border-box;
         margin: 0;
         position: absolute;
-        /* iron-list expects top to be 0. Might cause issues */
-        /* top: 0; */
-        will-change: transform;
       }
 
       table {
@@ -4037,11 +4476,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         transform: translateX(-100%);
       }
 
+      :host([column-reordering-allowed]) #header,
       :host([column-resizing]) {
         -ms-user-select: none;
         -moz-user-select: none;
         -webkit-user-select: none;
         user-select: none;
+      }
+
+      :host([column-resizing]) {
         cursor: col-resize;
       }
 
@@ -4074,6 +4517,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ::content > vaadin-grid-selection-column,
       ::content > vaadin-grid-column-group {
         display: none;
+      }
+
+      :host([no-content-pointer-events]) .vaadin-grid-cell ::content > .cell-content {
+        pointer-events: none;
+      }
+
+      #reorderghost {
+        visibility: hidden;
+        position: fixed;
+        opacity: 0.5;
+        pointer-events: none;
       }
 
       /* Style overrides required to make copying the selection to clipboard work properly (on Safari) */
@@ -4167,21 +4621,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style include="vaadin-grid-table-scroll-styles"></style>
     <style include="vaadin-grid-row-details-styles"></style>
-    <style include="vaadin-grid-data-source-styles"></style>
     <style include="vaadin-grid-table-styles"></style>
 
     <style include="vaadin-grid-table-themability-styles"></style>
     <style include="vaadin-grid-selection-themability-styles"></style>
     <style include="vaadin-grid-navigation-themability-styles"></style>
     <style include="vaadin-grid-active-item-themability-styles"></style>
-    <style include="vaadin-grid-data-source-themability-styles"></style>
+    <style include="vaadin-grid-data-provider-themability-styles"></style>
     <style include="vaadin-grid-row-details-themability-styles"></style>
     <style include="vaadin-grid-column-reordering-themability-styles"></style>
 
+    <!-- TODO: Shadow DOM doesn't let focusin events bubble, therefore on-focus also -->
+    <vaadin-grid-table-focus-trap id="headerFocusTrap" on-focus="_onHeaderFocus" on-focusin="_onHeaderFocus" on-focusout="_onFocusout">
+    </vaadin-grid-table-focus-trap>
+    <content select="#headerFocusTrap"></content>
 
-    <!-- trap needs to have content in order for Safari to scroll the page when focused -->
-    <div id="headerFocusTrap" tabindex="0" on-focus="_onHeaderFocus" style="position: absolute;z-index: -1">&nbsp;</div>
-    <div id="bodyFocusTrap" tabindex="-1" on-focus="_onBodyFocus" style="position: absolute;z-index: -1">&nbsp;</div>
+    <vaadin-grid-table-focus-trap id="bodyFocusTrap" on-focus="_onBodyFocus" on-focusin="_onBodyFocus" on-focusout="_onFocusout">
+    </vaadin-grid-table-focus-trap>
+    <content select="#bodyFocusTrap"></content>
 
     <content select="vaadin-grid-column, vaadin-grid-selection-column, vaadin-grid-column-group"></content>
 
@@ -4200,12 +4657,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div id="outersizer" is="vaadin-grid-sizer" top="[[_estScrollHeight]]" column-tree="[[columnTree]]"></div>
     </vaadin-grid-table-outer-scroller>
 
+    <div id="reorderghost"></div>
+
     <!--
       in native Shadow, we move the footer focus trap to light DOM.
       It needs to be injected/slotted back inside the shadow root in order to be focusable.
      -->
     <content select="#footerFocusTrap"></content>
-    <div id="footerFocusTrap" tabindex="0" on-focus="_onFooterFocus" style="position: absolute;z-index: -1">&nbsp;</div>
+    <vaadin-grid-table-focus-trap id="footerFocusTrap" on-focus="_onFooterFocus" on-focusin="_onFooterFocus" on-focusout="_onFocusout">
+    </vaadin-grid-table-focus-trap>
   </template>
 </dom-module>
 
@@ -4220,8 +4680,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       vaadin.elements.grid.TableScrollBehavior,
       vaadin.elements.grid.TableKeyboardBehavior,
       vaadin.elements.grid.TableColumnReorderingBehavior,
-      Polymer.Templatizer,
-      Polymer.IronResizableBehavior
+      Polymer.Templatizer
     ],
 
     properties: {
@@ -4232,6 +4691,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       bindData: Function,
 
       rowDetailsTemplate: Object,
+
+      columnReorderingAllowed: {
+        type: Boolean,
+        reflectToAttribute: true
+      },
 
       safari: {
         value: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
@@ -4256,12 +4720,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      target: Object
+      target: Object,
+
+      hasData: Boolean
     },
 
     observers: [
       '_columnTreeChanged(columnTree, _physicalItems, _physicalCountVal)',
-      '_sizeChanged(size, bindData)',
+      '_sizeChanged(size, bindData, hasData)',
       '_rowDetailsTemplateChanged(rowDetailsTemplate, _physicalItems, _physicalCountVal)'
     ],
 
@@ -4269,11 +4735,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       'property-changed': '_columnPropChanged',
       'copy': '_onCopy',
       'animationend': '_onAnimationEnd',
-      'track': '_onTrack'
+      'header.column-resizing': '_onColumnResize'
     },
 
-    _onTrack: function() {
+    _onColumnResize: function() {
       this.toggleAttribute('column-resizing', this.$.header.querySelector('[column-resizing]'));
+      this._gridResizeHandler();
     },
 
     _onAnimationEnd: function(e) {
@@ -4298,7 +4765,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       if (e.detail.path === 'hidden') {
-        this.notifyResize();
+        this._gridResizeHandler();
       }
     },
 
@@ -4338,7 +4805,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         row.columns = columnTree[columnTree.length - 1];
       });
 
-      this._updateHeaderFooterMetrics();
+      this._gridResizeHandler();
       this._updateLastColumn();
     },
 
@@ -4349,18 +4816,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     _updateHeaderFooterMetrics: function() {
-      Polymer.RenderStatus.afterNextRender(this.$.header, function() {
-        var headerHeight = this.$.header.clientHeight + 'px';
-        var footerHeight = this.$.footer.clientHeight + 'px';
+      Polymer.dom.flush();
+      this._updateHeaderFooterMetricsSync();
 
-        [this.$.outersizer, this.$.fixedsizer, this.$.items].forEach(function(element) {
-          element.style.borderTopWidth = headerHeight;
-          element.style.borderBottomWidth = footerHeight;
-        });
+      Polymer.RenderStatus.afterNextRender(this.$.header, function() {
+        this._updateHeaderFooterMetricsSync();
         if (this._pendingScrollToScaledIndex) {
           this.scrollToScaledIndex(this._pendingScrollToScaledIndex);
         }
       }.bind(this));
+    },
+
+    _updateHeaderFooterMetricsSync: function() {
+      var headerHeight = this.$.header.clientHeight + 'px';
+      var footerHeight = this.$.footer.clientHeight + 'px';
+
+      [this.$.outersizer, this.$.fixedsizer, this.$.items].forEach(function(element) {
+        element.style.borderTopWidth = headerHeight;
+        element.style.borderBottomWidth = footerHeight;
+      });
     },
 
     _hasTemplatesChanged: function(columnTree) {
@@ -4394,7 +4868,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       return physicalItems;
     },
 
-    _sizeChanged: function(size) {
+    _sizeChanged: function(size, bindData, hasData) {
       this._virtualStart = 0;
       this._physicalTop = 0;
 
@@ -4405,7 +4879,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this._lastVisibleIndexVal = null;
 
       this._vidxOffset = 0;
-      this._resetScrollPosition(0);
 
       if (!this._physicalItems) {
         var DEFAULT_PHYSICAL_COUNT = 25;
@@ -4439,7 +4912,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         el.toggleAttribute('hidden', el.index >= this.size);
         this.bindData(el.index, el);
       }, itemSet);
-    }
+    },
+
+    _gridResizeHandler: function() {
+      this._updateHeaderFooterMetrics();
+
+      if (this._physicalSizes) {
+        this._physicalItems.forEach(function(row) {
+          row.updateRowDetailsCellMetrics();
+        });
+        this.debounce('vaadin-grid-resizing', function() {
+          this._update();
+        }.bind(this), 1);
+      }
+    },
+
 
   });
 
@@ -4448,56 +4935,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 @license
 Copyright (c) 2016 Vaadin Ltd.
 This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
---><!--
-
-A `vaadin-grid-column` is used to configure how a column in `vaadin-grid` should look like by using HTML templates.
-A column can have a template for each of the three table sections: header, body and footer.
-
-The `class` attribute is used to differentiate header and footer templates from the body template.
-
-#### Example:
-
-    <vaadin-grid-column>
-      <template class="header">I'm in the header</template>
-      <template>I'm in the body</template>
-      <template class="footer">I'm in the footer</template>
-    </vaadin-grid-column>
-
--->
-<dom-module id="vaadin-grid-column" assetpath="../../../bower_components/vaadin-grid/">
-</dom-module>
-
-<!--
-
-A `vaadin-grid-column-group` is used to wrap many columns under a common header. It supports nested groups.
-
-The `class` attribute is used to differentiate header and footer templates.
-
-#### Example:
-
-    <vaadin-grid>
-      <vaadin-grid-column-group>
-        <template class="header">I'm in the group header</template>
-        <template class="footer">I'm in the group footer</template>
-        <vaadin-grid-column>
-          <template class="header">I'm in the first header</template>
-          <template>I'm in the first body cell</template>
-          <template class="footer">I'm in the first footer</template>
-        </vaadin-grid-column>
-        <vaadin-grid-column>
-          <template class="header">I'm in the second header</template>
-          <template>I'm in the second body cell</template>
-          <template class="footer">I'm in the second footer</template>
-        </vaadin-grid-column>
-      </vaadin-grid-column-group>
-    </vaadin-grid>
-
--->
-<dom-module id="vaadin-grid-column-group" assetpath="../../../bower_components/vaadin-grid/">
-</dom-module>
-
-<script>
-
+--><script>
   window.vaadin = window.vaadin || {};
   vaadin.elements = vaadin.elements || {};
   vaadin.elements.grid = vaadin.elements.grid || {};
@@ -4715,225 +5153,24 @@ The `class` attribute is used to differentiate header and footer templates.
     vaadin.elements.grid.ColumnBaseBehavior,
     vaadin.elements.grid.ColumnBehaviorImpl
   ];
+</script><dom-module id="vaadin-grid-column" assetpath="../../../bower_components/vaadin-grid/">
+  <script>
+    Polymer({
+      is: 'vaadin-grid-column',
 
-  Polymer({
-    is: 'vaadin-grid-column',
-
-    behaviors: [vaadin.elements.grid.ColumnBehavior]
-  });
-
-
-  Polymer({
-    is: 'vaadin-grid-column-group',
-
-    behaviors: [vaadin.elements.grid.ColumnBaseBehavior],
-
-    properties: {
-      _childColumns: {
-        value: function() {
-          return Polymer.dom(this).querySelectorAll('vaadin-grid-column, vaadin-grid-selection-column');
-        }
-      },
-
-      /**
-       * Flex grow ratio for the column group as the sum of the ratios of its child columns.
-       */
-      flexGrow: {
-        type: Number,
-        readOnly: true
-      },
-
-      /**
-       * Width of the column group as the sum of the widths of its child columns.
-       */
-      width: {
-        type: String,
-        readOnly: true
-      },
-
-      _visibleChildColumns: Array,
-
-      /**
-       * `true` when all of its child columns are hidden.
-       */
-      hidden: {
-        type: Boolean,
-        notify: true,
-        readOnly: true
-      },
-
-      /**
-       * Represents the number of child columns of this group.
-       */
-      colSpan: {
-        type: Number,
-        notify: true,
-        readOnly: true
-      },
-
-      _rootColumns: Array
-    },
-
-    observers: [
-      '_updateVisibleChildColumns(_childColumns)',
-      '_childColumnsChanged(_childColumns)',
-      '_flexGrowChanged(flexGrow)',
-      '_widthChanged(width)',
-      '_frozenChanged(_childColumns, frozen)',
-      '_hiddenChanged(hidden)',
-      '_visibleChildColumnsChanged(_visibleChildColumns)',
-      '_colSpanChanged(colSpan)',
-      '_orderChanged(_order, _rootColumns)',
-      '_reorderStatusChanged(_reorderStatus, _rootColumns)',
-      '_resizableChanged(resizable, _rootColumns)'
-    ],
-
-    listeners: {
-      'property-changed': '_columnPropChanged'
-    },
-
-    attached: function() {
-      this._updateFlexAndWidth(this._visibleChildColumns);
-      this._addNodeObserver();
-    },
-
-    detached: function() {
-      Polymer.dom(this).unobserveNodes(this._observer);
-    },
-
-    _columnPropChanged: function(e) {
-      if (e.detail.path === 'hidden') {
-        this._updateVisibleChildColumns(this._childColumns);
-      }
-
-      if (/flexGrow|width|hidden|_childColumns/.test(e.detail.path)) {
-        this._updateFlexAndWidth(this._visibleChildColumns);
-      }
-
-      if (e.detail.path === 'frozen') {
-        this.frozen = e.detail.value;
-      }
-
-      if (e.detail.path === 'lastFrozen') {
-        this._lastFrozen = e.detail.value;
-      }
-    },
-
-    _orderChanged: function(order, rootColumns) {
-      if (order) {
-        // The parent column order number cascades downwards to it's children
-        // so that the resulting order numbering constructs as follows:
-        // [             1000              ]
-        // [     1100    ] | [     1200    ]
-        // [1110] | [1120] | [1210] | [1220]
-
-        // Trailing zeros are counted so we know the level on which we're working on.
-        var trailingZeros = /(0+)$/.exec(order).pop().length;
-
-        // In an unlikely situation where a group has more than 9 child columns,
-        // the child scope must have 1 digit less...
-        var childCountDigits = ~~Math.log10(rootColumns.length) + 1;
-
-        // Final scope for the child columns needs to mind both factors.
-        var scope = Math.pow(10, trailingZeros - childCountDigits);
-
-        var _rootColumns = rootColumns.slice(0);
-        if (_rootColumns[0] && _rootColumns[0]._order) {
-          _rootColumns.sort(function(a, b) {
-            return a._order - b._order;
-          });
-        }
-        
-        _rootColumns.forEach(function(column, index) {
-          column._order = order + ((index + 1) * scope);
-        });
-
-        this.fire('property-changed', {path: 'order', value: order});
-      }
-    },
-
-    _reorderStatusChanged: function(reorderStatus, rootColumns) {
-      rootColumns.forEach(function(column) {
-        column._reorderStatus = reorderStatus;
-      });
-
-      this.fire('property-changed', {path: 'reorderStatus', value: reorderStatus});
-    },
-
-    _resizableChanged: function(resizable, rootColumns) {
-      rootColumns.forEach(function(column) {
-        column.resizable = resizable;
-      });
-
-      this.fire('property-changed', {path: 'resizable', value: resizable});
-    },
-
-    _updateVisibleChildColumns: function(childColumns) {
-      this._visibleChildColumns = childColumns.filter(function(col) {
-        return !col.hidden;
-      });
-    },
-
-    _childColumnsChanged: function(childColumns) {
-      this.fire('property-changed', {path: '_childColumns', value: childColumns});
-    },
-
-    _updateFlexAndWidth: function(visibleChildColumns) {
-      this._setWidth('calc(' + visibleChildColumns.reduce(function(prev, curr) {
-        return prev += ' + ' + (curr.width || '0').replace('calc', '');
-      }, '').substring(3) + ')');
-
-      this._setFlexGrow(visibleChildColumns.reduce(function(prev, curr) {
-        return prev + curr.flexGrow;
-      }, 0));
-    },
-
-    _frozenChanged: function(childColumns, frozen) {
-      childColumns.forEach(function(col) {
-        col.frozen = frozen;
-      });
-      this.fire('property-changed', {path: 'frozen', value: frozen});
-    },
-
-    _hiddenChanged: function(hidden) {
-      this.fire('property-changed', {path: 'hidden', value: hidden});
-    },
-
-    _visibleChildColumnsChanged: function(visibleChildColumns) {
-      this._setColSpan(visibleChildColumns.length);
-      this._setHidden(this.colSpan === 0);
-    },
-
-    _colSpanChanged: function(colSpan) {
-      this.fire('property-changed', {path: 'colSpan', value: colSpan});
-    },
-
-    _addNodeObserver: function() {
-      this._observer = Polymer.dom(this).observeNodes(function(info) {
-        this._rootColumns = Polymer.dom(this).children.filter(function(child) {
-          return /column/.test(child.localName);
-        });
-        var columns = function(node) {
-          return (node.nodeType === Node.ELEMENT_NODE && node.localName.indexOf('vaadin-grid-column') === 0);
-        };
-        if (info.addedNodes.filter(columns).length > 0 ||
-        info.removedNodes.filter(columns).length > 0) {
-          this._childColumns = Polymer.dom(this).querySelectorAll('vaadin-grid-column');
-        }
-      }.bind(this));
-    }
-  });
-
-</script>
+      behaviors: [vaadin.elements.grid.ColumnBehavior]
+    });
+  </script>
+</dom-module>
 <script>
   window.vaadin = window.vaadin || {};
   vaadin.elements = vaadin.elements || {};
   vaadin.elements.grid = vaadin.elements.grid || {};
 
   /**
-   * @polymerBehavior vaadin.elements.grid.ArrayDataSourceBehavior
+   * @polymerBehavior vaadin.elements.grid.ArrayDataProviderBehavior
    */
-  vaadin.elements.grid.ArrayDataSourceBehavior = {
+  vaadin.elements.grid.ArrayDataProviderBehavior = {
 
     properties: {
 
@@ -4951,11 +5188,11 @@ The `class` attribute is used to differentiate header and footer templates.
 
     _itemsChanged: function(items, splices) {
       this.size = (items || []).length;
-      this.dataSource = this.dataSource || this._arrayDataSource;
+      this.dataProvider = this.dataProvider || this._arrayDataProvider;
       this.clearCache();
     },
 
-    _arrayDataSource: function(opts, cb) {
+    _arrayDataProvider: function(opts, cb) {
       var items = (this.items || []).slice(0);
 
       items = this._filter(items);
@@ -5081,6 +5318,8 @@ The `class` attribute is used to differentiate header and footer templates.
         // to light children. We need to make sure footer focus trap is always
         // the very last element that can be tabbed into.
         if (Polymer.Settings.useNativeShadow) {
+          Polymer.dom(this).insertBefore(this.$.scroller.$.bodyFocusTrap, Polymer.dom(this).firstElementChild);
+          Polymer.dom(this).insertBefore(this.$.scroller.$.headerFocusTrap, Polymer.dom(this).firstElementChild);
           Polymer.dom(this).appendChild(this.$.scroller.$.footerFocusTrap);
         }
       }.bind(this));
@@ -5106,114 +5345,6 @@ The `class` attribute is used to differentiate header and footer templates.
     }
   };
 </script>
-<!--
-@license
-Copyright (c) 2016 Vaadin Ltd.
-This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
---><dom-module id="vaadin-grid-sorter" assetpath="../../../bower_components/vaadin-grid/">
-  <template>
-    <style>
-      :host {
-        display: inline-flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-      }
-
-      #indicators {
-        position: relative;
-      }
-
-      :host(:not([direction])) #order,
-      :host(:not([direction])) #indicators::before {
-        opacity: 0.2;
-      }
-
-      #order {
-        position: absolute;
-        right: 0;
-        top: 0;
-        transform: translateY(-4px) scale(0.7);
-        @apply(--vaadin-grid-sorter-order);
-      }
-
-      #indicators::before {
-        content: "▲";
-        display: block;
-        padding: 0 8px;
-        @apply(--vaadin-grid-sorter-arrow);
-      }
-
-      :host([direction=desc]) #indicators::before {
-        transform: rotateZ(180deg);
-      }
-    </style>
-
-    <content></content>
-    <div id="indicators">
-      <div id="order">[[_getDisplayOrder(_order)]]</div>
-    </div>
-
-  </template>
-  <script>
-    Polymer({
-      is: 'vaadin-grid-sorter',
-
-      properties: {
-
-        /**
-         * JS Path of the property in the item used for sorting the data.
-         */
-        path: String,
-
-        /**
-         * How to sort the data.
-         * Possible values are `asc` to use an ascending algorithm, `desc` to sort the data in
-         * descending direction, or `null` for not sorting the data.
-         */
-        direction: {
-          type: String,
-          reflectToAttribute: true,
-          notify: true,
-          value: null
-        },
-
-        _order: Number
-
-      },
-
-      observers: [
-        '_propertiesChanged(path, direction, isAttached)'
-      ],
-
-      behaviors: [
-        vaadin.elements.grid.CellClickBehavior
-      ],
-
-      _propertiesChanged: function(path, direction, isAttached) {
-        if (isAttached) {
-          this.fire('sorter-changed');
-        }
-      },
-
-      _getDisplayOrder: function(order) {
-        return order === null ? '' : order + 1;
-      },
-
-      _cellClick: function(e) {
-        if (this.direction === 'asc') {
-          this.direction = 'desc';
-        } else if (this.direction === 'desc') {
-          this.direction = null;
-        } else {
-          this.direction = 'asc';
-        }
-      }
-
-    });
-  </script>
-</dom-module>
-
 <script>
   window.vaadin = window.vaadin || {};
   vaadin.elements = vaadin.elements || {};
@@ -5261,7 +5392,7 @@ This program is available under Apache License Version 2.0, available at https:/
 
       e.stopPropagation();
 
-      if (this.dataSource &&
+      if (this.dataProvider &&
         // No need to clear cache if sorters didn't change
         JSON.stringify(this._previousSorters) !== JSON.stringify(this._mapSorters())) {
         this.clearCache();
@@ -5288,61 +5419,6 @@ This program is available under Apache License Version 2.0, available at https:/
 
   };
 </script>
-<!--
-@license
-Copyright (c) 2016 Vaadin Ltd.
-This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
---><dom-module id="vaadin-grid-filter" assetpath="../../../bower_components/vaadin-grid/">
-  <template>
-    <style>
-      :host {
-        display: inline-flex;
-      }
-
-      #filter {
-        width: 100%;
-        box-sizing: border-box;
-      }
-    </style>
-
-    <content select="*">
-      <input id="filter" value="{{value::input}}">
-    </content>
-
-  </template>
-  <script>
-    Polymer({
-      is: 'vaadin-grid-filter',
-
-      properties: {
-
-        /**
-         * JS Path of the property in the item used for filtering the data.
-         */
-        path: String,
-
-        /**
-         * Current filter value.
-         */
-        value: {
-          type: String,
-          notify: true
-        }
-      },
-
-      observers: ['_filterChanged(path, value, isAttached)'],
-
-      _filterChanged: function(path, value, isAttached) {
-        if (isAttached) {
-          this.debounce('filter-changed', function() {
-            this.fire('filter-changed');
-          }, 200);
-        }
-      }
-    });
-  </script>
-</dom-module>
-
 <script>
   window.vaadin = window.vaadin || {};
   vaadin.elements = vaadin.elements || {};
@@ -5373,7 +5449,7 @@ This program is available under Apache License Version 2.0, available at https:/
 
       e.stopPropagation();
 
-      if (this.dataSource) {
+      if (this.dataProvider) {
         this.clearCache();
       }
     },
@@ -5400,8 +5476,7 @@ This program is available under Apache License Version 2.0, available at https:/
       -webkit-tap-highlight-color: transparent;
     }
 
-    :host(:focus),
-    ::content #footerFocusTrap:focus {
+    :host(:focus) {
       outline: none;
     }
 
@@ -5412,7 +5487,7 @@ This program is available under Apache License Version 2.0, available at https:/
 
   </style>
   <template>
-    <vaadin-grid-table id="scroller" loading$="[[_loading]]" bind-data="[[_bindData]]" size="[[size]]" column-tree="[[_columnTree]]" content-target="[[_getContentTarget()]]" row-details-template="[[_rowDetailsTemplate]]">
+    <vaadin-grid-table id="scroller" loading$="[[_loading]]" bind-data="[[_bindData]]" size="[[size]]" column-tree="[[_columnTree]]" content-target="[[_getContentTarget()]]" row-details-template="[[_rowDetailsTemplate]]" column-reordering-allowed="[[columnReorderingAllowed]]">
       <content></content>
     </vaadin-grid-table>
   </template>
@@ -5432,7 +5507,7 @@ This program is available under Apache License Version 2.0, available at https:/
 
       /**
        * Estimated size of the grid data (number of items).
-       * When using function data sources, it always needs to be set manually.
+       * When using function data providers, it always needs to be set manually.
        */
       size: Number,
 
@@ -5447,11 +5522,12 @@ This program is available under Apache License Version 2.0, available at https:/
 
     behaviors: [
       Polymer.IronA11yKeysBehavior,
+      Polymer.IronResizableBehavior,
       vaadin.elements.grid.ActiveItemBehavior,
       vaadin.elements.grid.RowDetailsBehavior,
-      vaadin.elements.grid.DataSourceBehavior,
+      vaadin.elements.grid.DataProviderBehavior,
       vaadin.elements.grid.DynamicColumnsBehavior,
-      vaadin.elements.grid.ArrayDataSourceBehavior,
+      vaadin.elements.grid.ArrayDataProviderBehavior,
       vaadin.elements.grid.SelectionBehavior,
       vaadin.elements.grid.SortBehavior,
       vaadin.elements.grid.FilterBehavior,
@@ -5460,7 +5536,8 @@ This program is available under Apache License Version 2.0, available at https:/
     ],
 
     listeners: {
-      'property-changed': '_columnPropChanged'
+      'property-changed': '_columnPropChanged',
+      'iron-resize': '_gridResizeHandler'
     },
 
     _updateItem: function(row, item) {
@@ -5488,6 +5565,10 @@ This program is available under Apache License Version 2.0, available at https:/
       }
 
       e.stopPropagation();
+    },
+
+    _gridResizeHandler: function() {
+      this.$.scroller._gridResizeHandler();
     }
   });
 </script>
@@ -7770,126 +7851,6 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 --><!--
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---><!--
-`iron-a11y-announcer` is a singleton element that is intended to add a11y
-to features that require on-demand announcement from screen readers. In
-order to make use of the announcer, it is best to request its availability
-in the announcing element.
-
-Example:
-
-    Polymer({
-
-      is: 'x-chatty',
-
-      attached: function() {
-        // This will create the singleton element if it has not
-        // been created yet:
-        Polymer.IronA11yAnnouncer.requestAvailability();
-      }
-    });
-
-After the `iron-a11y-announcer` has been made available, elements can
-make announces by firing bubbling `iron-announce` events.
-
-Example:
-
-    this.fire('iron-announce', {
-      text: 'This is an announcement!'
-    }, { bubbles: true });
-
-Note: announcements are only audible if you have a screen reader enabled.
-
-@group Iron Elements
-@demo demo/index.html
--->
-
-<dom-module id="iron-a11y-announcer" assetpath="../../../bower_components/iron-a11y-announcer/">
-  <template>
-    <style>
-      :host {
-        display: inline-block;
-        position: fixed;
-        clip: rect(0px,0px,0px,0px);
-      }
-    </style>
-    <div aria-live$="[[mode]]">[[_text]]</div>
-  </template>
-
-  <script>
-
-    (function() {
-      'use strict';
-
-      Polymer.IronA11yAnnouncer = Polymer({
-        is: 'iron-a11y-announcer',
-
-        properties: {
-
-          /**
-           * The value of mode is used to set the `aria-live` attribute
-           * for the element that will be announced. Valid values are: `off`,
-           * `polite` and `assertive`.
-           */
-          mode: {
-            type: String,
-            value: 'polite'
-          },
-
-          _text: {
-            type: String,
-            value: ''
-          }
-        },
-
-        created: function() {
-          if (!Polymer.IronA11yAnnouncer.instance) {
-            Polymer.IronA11yAnnouncer.instance = this;
-          }
-
-          document.body.addEventListener('iron-announce', this._onIronAnnounce.bind(this));
-        },
-
-        /**
-         * Cause a text string to be announced by screen readers.
-         *
-         * @param {string} text The text that should be announced.
-         */
-        announce: function(text) {
-          this._text = '';
-          this.async(function() {
-            this._text = text;
-          }, 100);
-        },
-
-        _onIronAnnounce: function(event) {
-          if (event.detail && event.detail.text) {
-            this.announce(event.detail.text);
-          }
-        }
-      });
-
-      Polymer.IronA11yAnnouncer.instance = null;
-
-      Polymer.IronA11yAnnouncer.requestAvailability = function() {
-        if (!Polymer.IronA11yAnnouncer.instance) {
-          Polymer.IronA11yAnnouncer.instance = document.createElement('iron-a11y-announcer');
-        }
-
-        document.body.appendChild(Polymer.IronA11yAnnouncer.instance);
-      };
-    })();
-
-  </script>
-</dom-module>
-<!--
 @license
 Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
@@ -18493,17 +18454,21 @@ This program is available under Apache License Version 2.0, available at https:/
 </dom-module></div><dom-module id="patients-view">
   <template>
     <style include="shared-styles">
-      :host {
+       :host {
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
-      
+
+
+
       vaadin-grid {
         flex: 1;
         height: 100%;
       }
-      
+
+
+
       patient-details {
         position: absolute;
         box-sizing: border-box;
@@ -18514,21 +18479,25 @@ This program is available under Apache License Version 2.0, available at https:/
         border-left: 5px solid #434D54;
         display: none;
       }
-      
+
+
+
       patient-details.open {
         display: inherit;
         left: 25%;
         right: 0;
         box-shadow: 2px 2px 10px 8px rgba(0, 0, 0, 0.2);
       }
-      
+
+
+
       .details-row label {
         width: 50%;
         text-align: right;
         padding-right: 0.5rem;
         margin-bottom: 0;
       }
-      
+
       @media (max-width: 600px) {
         patient-details.open {
           left: 0;
@@ -18537,10 +18506,10 @@ This program is available under Apache License Version 2.0, available at https:/
         }
       }
     </style>
-    <app-route route="{{route}}" pattern="/:id" data="{{routeData}}" tail="{{subroute}}" active="{{routeActive}}"></app-route>
+    <app-route route="{{route}}" pattern=":id" data="{{routeData}}" tail="{{subroute}}" active="{{routeActive}}"></app-route>
 
     <iron-media-query query="(max-width: 600px)" query-matches="{{narrow}}"></iron-media-query>
-    <vaadin-grid id="grid" data-source="[[_fetchPatients]]" active-item="{{currentPatient}}" size="100" page-size="20">
+    <vaadin-grid id="grid" data-provider="[[_fetchPatients]]" active-item="{{currentPatient}}" page-size="100">
       <template class="row-details">
         <div class="details-row">
           <div class="field">
@@ -18625,6 +18594,10 @@ This program is available under Apache License Version 2.0, available at https:/
           type: Array,
           notify: true
         },
+        people: {
+          type: Array,
+          value: [{ firstName: 'Marcus', lastName: 'Hellberg' }]
+        },
         currentPatient: {
           type: Object,
           notify: true,
@@ -18641,10 +18614,10 @@ This program is available under Apache License Version 2.0, available at https:/
           value: function () {
             return function (params, callback) {
               function getSortParams() {
-                return params.sortOrder.map(sortOrder => `sort=${sortOrder.path},${sortOrder.direction}`).join('&');
+                return params.sortOrder.map(sort => `sort=${sort.path},${sort.direction}`).join('&');
               }
 
-              if (callback) PatientPortal.http.get(`/patients?page=${params.page}&limit=${params.pageSize}&${getSortParams()}`)
+              if (callback) PatientPortal.http.get(`/patients?page=${params.page}&size=${params.pageSize}&${getSortParams()}`)
                 .then(res => {
                   this.$.grid.size = res.totalElements;
                   callback(res.content);
