@@ -705,7 +705,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </div><dom-module id="main-view">
   <template>
     <style include="shared-styles">
-      :host {
+       :host {
         display: flex;
         flex-direction: column;
         position: absolute;
@@ -714,13 +714,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         width: 100vw;
         height: 100vh;
       }
-      
+
       nav.menu {
         background: #B5B9BC;
         height: 60px;
         display: flex;
       }
-      
+
       nav.menu a {
         font-size: 16px;
         line-height: 60px;
@@ -730,28 +730,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: #fff;
         height: 100%;
       }
-      
+
       nav.menu a:hover {
         color: #ddd;
         background: #747C81;
       }
-      
+
       nav.menu a.active {
         background: #fff;
         color: #9DD22D;
       }
-      
+
       nav.menu a.right {
         margin-left: auto;
       }
-      
+
       .content {
         flex: 1;
         display: flex;
         padding: 16px;
+        height: 100%;
       }
-      
-      .content > * {
+
+      .content>* {
         flex: 1;
       }
     </style>
@@ -770,7 +771,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <iron-pages class="content" selected="[[page]]" attr-for-selected="name" fallback-selection="not-found-view" role="main" selected-attribute="active">
       <patients-view name="patients" route="{{subroute}}"></patients-view>
       <analytics-view name="analytics" route="{{subroute}}"></analytics-view>
-      </iron-pages>
+    </iron-pages>
   </template>
   <script>
     Polymer({
