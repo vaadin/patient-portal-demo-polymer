@@ -436,6 +436,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       this.$.table.scrollTop = idx / this.size * this.$.table.scrollHeight;
       this._scrollHandler();
       this.scrollToIndex(idx - this._vidxOffset);
+      // _scrollTop is not up-to-date at this point, update and run scrollhandler
+      this._resetScrollPosition(this._scrollPosition);
+      this._scrollHandler();
 
       // TODO: This is a hack to get around offset issues when scrolling to bottom.
       // Revisit iron-list-behavior for cleaner fix.
@@ -958,11 +961,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
           Polymer.dom(this).appendChild(insertionPoint);
         } else {
-          this.debounce('remove-content', function() {
+          this.async(function() {
             if (!this.isAttached && Polymer.dom(cellContent).parentNode === this.target) {
               Polymer.dom(this.target).removeChild(cellContent);
             }
-          }, 1);
+          });
         }
       },
 
@@ -1017,10 +1020,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       observers: ['_templateChanged(template)'],
 
-      _cellClick: function() {
-        this.fire('cell-activate', {
-          model: this.instance
-        });
+      _cellClick: function(e) {
+        if (!e.defaultPrevented) {
+          this.fire('cell-activate', {
+            model: this.instance
+          });
+        }
       }
     });
 
@@ -1460,10 +1465,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _focusedRow: Object,
       _focusedRowIndex: Number,
       _focusedCell: Object,
-      _focusedCellIndex: Number
+      _focusedCellIndex: Number,
+      _lastFocusedCell: Object
     },
 
-    observers: ['_announceFocusedCell(_focusedCell, focused)', '_focusedCellChanged(_focusedRowIndex, _focusedCellIndex)'],
+    observers: [
+      '_announceFocusedCell(_focusedCell, focused)',
+      '_dispatchEvents(_focusedCell, focused)',
+      '_focusedCellChanged(_focusedRowIndex, _focusedCellIndex)'
+    ],
 
     _announceFocusedCell: function(cell, focused) {
       // changing activeTarget steals focus so we don't want to do that while interacting with
@@ -1473,23 +1483,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return;
       }
       // note: VoiceOver doesn't work with dynamic IDs.
-      switch(this.is) {
-        case 'vaadin-grid-table-header':
-          this.domHost.$.headerFocusTrap.activeTarget = cell._cellContent.id;
-          break;
-        case 'vaadin-grid-table-body':
-          var index = Polymer.dom(cell.parentElement).querySelectorAll('td').indexOf(cell);
-          var lastHeaderRow = this.domHost.$.header.lastElementChild;
-          var headerCell = lastHeaderRow.children[index];
+      var activeTarget = cell._cellContent.id;
+      if (this.is === 'vaadin-grid-table-body' && !cell.hasAttribute('detailscell')) {
+        // note: having `cell.column.name` property for announcing would maybe be a good option here?
+        var index = Polymer.dom(cell.parentElement).querySelectorAll('td').indexOf(cell);
+        var lastHeaderRow = this.domHost.$.header.lastElementChild;
+        var headerCell = lastHeaderRow.children[index];
+        activeTarget = headerCell._cellContent.id + ' ' + activeTarget;
+      }
+      this._getFocusTrap().activeTarget = activeTarget;
+    },
 
-          // note: having `cell.column.name` property for announcing would maybe be a good option here?
-          this.domHost.$.bodyFocusTrap.activeTarget = cell.hasAttribute('detailscell') ?
-            cell._cellContent.id : headerCell._cellContent.id + ' ' + cell._cellContent.id;
-
-          break;
-        case 'vaadin-grid-table-footer':
-          this.domHost.$.footerFocusTrap.activeTarget = cell._cellContent.id;
-          break;
+    _dispatchEvents: function(cell, focused) {
+      // Dispatches cell-focusin and cell-focusout events on the cell content
+      // for the virtual focus. This helps cell contents to detect if the cell
+      // has focus, which is useful for the accessibility reasons. Used by
+      // <vaadin-grid-sorter>.
+      if (this._lastFocusedCell || !focused) {
+        this._lastFocusedCell._cellContent.dispatchEvent(new CustomEvent('cell-focusout'));
+        this._lastFocusedCell = undefined;
+      }
+      if (focused) {
+        cell._cellContent.dispatchEvent(new CustomEvent('cell-focusin'));
+        this._lastFocusedCell = cell;
       }
     },
 
@@ -1507,6 +1523,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           cell.focused = j === this._focusedCellIndex;
         }.bind(this));
       }.bind(this));
+    },
+
+    _getFocusTrap: function() {
+      switch(this.is) {
+        case 'vaadin-grid-table-header':
+          return this.domHost.$.headerFocusTrap;
+        case 'vaadin-grid-table-body':
+          return this.domHost.$.bodyFocusTrap;
+        case 'vaadin-grid-table-footer':
+          return this.domHost.$.footerFocusTrap;
+      }
     },
 
     focusLeft: function() {
@@ -1745,8 +1772,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <!-- trap needs to have content in order for Safari to scroll the page when focused -->
-    <div class="primary" tabindex="0" role="gridcell" on-focus="_onFocusin" on-blur="_onFocusout"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
-    <div class="secondary" tabindex="-1" role="gridcell" on-focus="_onFocusin" on-blur="_onFocusout"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
+    <div class="primary" tabindex="0" role="gridcell" on-focus="_onBaitFocus" on-blur="_onBaitBlur"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
+    <div class="secondary" tabindex="-1" role="gridcell" on-focus="_onBaitFocus" on-blur="_onBaitBlur"><div style="position:absolute;z-index:1;" aria-hidden="true">&nbsp;</div></div>
 
     <slot></slot>
   </template>
@@ -1760,14 +1787,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       listeners: {
-        'focus': '_onFocus'
+        'focus': '_onFocus',
+        'focusin': '_stopPropagationForReannouncing',
+        'focusout': '_stopPropagationForReannouncing'
       },
 
       properties: {
         activeTarget: {
           type: String,
           observer: '_activeTargetChanged'
-        }
+        },
       },
 
       ready: function() {
@@ -1786,7 +1815,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._primary.focus();
       },
 
-      _onFocusin: function(e) {
+      _onBaitFocus: function(e) {
         // TODO: remove this custom event after FF52 with native focusin support
         // is in use.
         this.fire('focusin');
@@ -1794,7 +1823,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._focused = e.target;
       },
 
-      _onFocusout: function(e) {
+      _onBaitBlur: function(e) {
         // TODO: remove this custom event after FF52 with native focusout support
         // is in use.
         this.fire('focusout');
@@ -1810,7 +1839,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this._primary.setAttribute('aria-labelledby', target);
           this._primary.focus();
         }
+      },
+
+      _reannounce: function() {
+        this._isReannouncing = true;
+        if (this._focused === this._primary) {
+          this._secondary.setAttribute('aria-labelledby', this.activeTarget);
+          this._secondary.focus();
+        } else {
+          this._primary.setAttribute('aria-labelledby', this.activeTarget);
+          this._primary.focus();
+        }
+        this._isReannouncing = false;
+      },
+
+      _stopPropagationForReannouncing: function(e) {
+        if (this._isReannouncing) {
+          // When reannouncing, the event is fake and must not be processed
+          e.stopImmediatePropagation();
+          e.stopPropagation();
+        }
       }
+
     });
   </script>
 </dom-module>
@@ -2333,7 +2383,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         animation: vaadin-grid-spin-360 400ms linear infinite;
       }
 
-      :host([loading])::before {
+      :host([loading]) #items::before {
         content: "";
         position: absolute;
         top: 0;
@@ -2342,6 +2392,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         height: 100%;
         background: rgba(255, 255, 255, 0.5);
         pointer-events: none;
+        z-index: 1;
         @apply(--vaadin-grid-loading-backdrop);
       }
 
@@ -2480,7 +2531,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
 
         var prev = Math.max(0, pages[0] - 1);
-        var next = Math.min(pages[pages.length - 1] + 1, Math.floor(this.size / this.pageSize) - 1);
+        var next = Math.min(pages[pages.length - 1] + 1, Math.max(0, Math.floor(this.size / this.pageSize) - 1));
 
         this._loadPage(prev);
         this._loadPage(next);
@@ -3324,11 +3375,19 @@ Note: announcements are only audible if you have a screen reader enabled.
     },
 
     _onSpace: function(e) {
-      if (this.navigating && !this.interacting && this._virtualFocus === this.$.items) {
-        e.preventDefault();
+      if (this.interacting) {
+        return;
+      }
 
+      e.preventDefault();
+
+      var focusedCell = this._virtualFocus._focusedCell;
+      var firstElementChild = focusedCell.getContentChildren('content')[0].firstElementChild;
+      if (firstElementChild) {
+        firstElementChild.click();
+      } else if (this.navigating) {
         this.fire('cell-activate', {
-          model: this._virtualFocus._focusedCell.instance
+          model: focusedCell.instance
         });
       }
     },
@@ -4816,7 +4875,9 @@ Note: announcements are only audible if you have a screen reader enabled.
     },
 
     _updateHeaderFooterMetrics: function() {
-      Polymer.dom.flush();
+      if (this._physicalSizes) {
+        Polymer.dom.flush();
+      }
       this._updateHeaderFooterMetricsSync();
 
       Polymer.RenderStatus.afterNextRender(this.$.header, function() {
@@ -4869,8 +4930,8 @@ Note: announcements are only audible if you have a screen reader enabled.
     },
 
     _sizeChanged: function(size, bindData, hasData) {
-      this._virtualStart = 0;
-      this._physicalTop = 0;
+      var scrollTop = this._scrollTop;
+      var firstVisibleIndex = this.firstVisibleIndex + this._vidxOffset;
 
       /* TODO: virtual count of 500k will make the sizer.top too large for Firefox */
       this._virtualCount = Math.min(size, 100000);
@@ -4888,10 +4949,25 @@ Note: announcements are only audible if you have a screen reader enabled.
         this._physicalSizes = new Array(this._physicalCount);
       }
 
-      this._physicalStart = 0;
-
       this._itemsRendered = false;
-      this._debounceTemplate(this._render);
+
+      this._debounceTemplate(function() {
+        this._render();
+
+        if (!this._viewportHeight) {
+          return;
+          // Don't run the following before init or pool size for non-Chrome browsers grows too large
+        }
+
+        // The size may have decreased so need to scroll to appropriate index first
+        this.scrollToScaledIndex(Math.min(firstVisibleIndex, this.size));
+        // Scroll to the original scroll position (if possible)
+        this._scrollTop = scrollTop;
+        this._scrollHandler();
+
+        this.flushDebouncer('vaadin-grid-scrolling');
+
+      });
     },
 
     /**
@@ -5221,7 +5297,14 @@ This program is available under Apache License Version 2.0, available at https:/
       }, 0);
     },
 
+    _normalizeEmptyValue: function(value) {
+      return [undefined, null].indexOf(value) >= 0 ? '' : value.toString();
+    },
+
     _compare: function(a, b) {
+      a = this._normalizeEmptyValue(a);
+      b = this._normalizeEmptyValue(b);
+
       if (a < b) {
         return -1;
       }
@@ -5234,9 +5317,9 @@ This program is available under Apache License Version 2.0, available at https:/
     _filter: function(items) {
       return items.filter(function(item, index) {
         return this._filters.filter(function(filter) {
-          var value = Polymer.Base.get(filter.path, item) || '';
-          return value.toString().toLowerCase().indexOf(filter.value.toString().toLowerCase()) === -1;
-        }).length === 0;
+          var value = this._normalizeEmptyValue(Polymer.Base.get(filter.path, item));
+          return value.toLowerCase().indexOf(filter.value.toString().toLowerCase()) === -1;
+        }.bind(this)).length === 0;
       }, this);
     }
 
@@ -11412,7 +11495,11 @@ will only render 20.
     _virtualStartVal: 0,
 
     set _virtualStart(val) {
-      this._virtualStartVal = Math.min(this._maxVirtualStart, Math.max(this._minVirtualStart, val));
+      val = Math.min(this._maxVirtualStart, Math.max(this._minVirtualStart, val));
+      if (this.grid) {
+        val = val - (val % this._itemsPerRow);
+      }
+      this._virtualStartVal = val;
     },
 
     get _virtualStart() {
@@ -11425,10 +11512,14 @@ will only render 20.
     _physicalStartVal: 0,
 
     set _physicalStart(val) {
-      this._physicalStartVal = val % this._physicalCount;
-      if (this._physicalStartVal < 0) {
-        this._physicalStartVal = this._physicalCount + this._physicalStartVal;
+      val = val % this._physicalCount;
+      if (val < 0) {
+        val = this._physicalCount + val;
       }
+      if (this.grid) {
+        val = val - (val % this._itemsPerRow);
+      }
+      this._physicalStartVal = val;
       this._physicalEnd = (this._physicalStart + this._physicalCount - 1) % this._physicalCount;
     },
 
@@ -12174,10 +12265,10 @@ will only render 20.
       var deltaHeight = this._virtualStart === 0 ? this._physicalTop :
           Math.min(this._scrollPosition + this._physicalTop, 0);
 
-      if (deltaHeight) {
+      if (deltaHeight > 0) {
         this._physicalTop = this._physicalTop - deltaHeight;
         // juking scroll position during interial scrolling on iOS is no bueno
-        if (!IOS_TOUCH_SCROLLING && this._physicalTop !== 0) {
+        if (!IOS_TOUCH_SCROLLING) {
           this._resetScrollPosition(this._scrollTop - deltaHeight);
         }
       }
@@ -13389,6 +13480,10 @@ This program is available under Apache License Version 2.0, available at https:/
         display: none;
       }
 
+      :host([readonly]) ::content .clear-button,
+      :host([readonly]) .clear-button,
+      :host([disabled]) ::content .clear-button,
+      :host([disabled]) .clear-button,
       :host([readonly]) ::content .toggle-button,
       :host([readonly]) .toggle-button,
       :host([disabled]) ::content .toggle-button,
@@ -13483,7 +13578,7 @@ This program is available under Apache License Version 2.0, available at https:/
         padding-right: 28px;
       }
 
-      :host([opened][has-value]) #input {
+      :host([has-value]) #input {
         padding-right: 60px;
         margin-right: -32px;
       }
