@@ -7,7 +7,7 @@
 <dom-module id="login-view">
   <template>
     <style include="shared-styles">
-      :host {
+       :host {
         display: block;
         position: absolute;
         top: 0;
@@ -19,28 +19,38 @@
         justify-content: center;
         padding: 2rem;
       }
-      
+
+
+
       .login-box {
         width: 400px;
         position: relative;
       }
-      
+
+
+
       .login-box h1 {
         color: #9DD22D;
         text-transform: uppercase;
         font-weight: 300;
       }
-      
+
+
+
       .login-box button {
         width: 40%;
       }
-      
+
+
+
       .alert.error {
         position: absolute;
         bottom: 0;
         transform: translateY(100px);
       }
-      
+
+
+
       button {
         margin-top: 1rem;
       }
@@ -70,27 +80,33 @@
     </div>
   </template>
   <script>
-      Polymer({
-        is: 'login-view', 
-        properties: {
-          errorMsg: String, 
-          username: String, 
-          password: String, 
-          loggedIn: {
-            type: Boolean, 
-            notify: true
-          }
+    Polymer({
+      is: 'login-view',
+      properties: {
+        errorMsg: String,
+        username: {
+          type: String,
+          value: 'user'
         },
-        login: function(){
-          this.errorMsg = '';
-          PatientPortal.http.login({
-            username: this.username,
-            password: this.password
-          })
-          .then(token => this.loggedIn = true)
-          .catch(err => 
-          this.errorMsg = err);
+        password: {
+          type: String,
+          value: 'password'
+        },
+        loggedIn: {
+          type: Boolean,
+          notify: true
         }
-      });
-    </script>
+      },
+      login: function () {
+        this.errorMsg = '';
+        PatientPortal.http.login({
+          username: this.username,
+          password: this.password
+        })
+          .then(token => this.loggedIn = true)
+          .catch(err =>
+            this.errorMsg = err);
+      }
+    });
+  </script>
 </dom-module>
