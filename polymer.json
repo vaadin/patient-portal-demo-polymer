@@ -18,5 +18,20 @@
     "bower_components/webcomponentsjs/webcomponents-lite.min.js",
     "bower_components/fetch/fetch.js",
     "bower_components/moment/min/moment.min.js"
-  ]
+  ],
+  "builds": [{
+    "name": "bundled",
+    "addServiceWorker": true,
+    "bundle": true,
+    "js": {
+      "compile": true,
+      "minify": true
+    },
+    "css": {
+      "minify": true
+    },
+    "html": {
+      "minify": true
+    }
+  }]
 }

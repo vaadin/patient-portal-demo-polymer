@@ -8,9 +8,9 @@ Make sure you have NPM and installed.
 
 0. Setup and run backend: https://gitlab.vaadin.com/marcus/patient-portal-demo-backend
 
-1. Install `polymer-cli`
+1. Install `polymer-cli@next`
 
-`$ npm install -g polymer-cli`
+`$ npm install -g polymer-cli@next`
 
 2. Install dependencies
 
@@ -19,3 +19,7 @@ Make sure you have NPM and installed.
 3. Run application with development server
 
 `polymer serve`
+
+4. Build
+
+`polymer build` and serve from `build/bundled`
