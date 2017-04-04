@@ -1,1 +1,1 @@
-"use strict";window.PatientPortal=window.PatientPortal||{},window.PatientPortal.config={apiUrl:"https://comparison.demo.vaadin.com"};
+window.PatientPortal=window.PatientPortal||{},window.PatientPortal.config={apiUrl:"https://comparison.demo.vaadin.com"};

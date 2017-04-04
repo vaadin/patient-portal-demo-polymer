@@ -37,7 +37,7 @@
 /* eslint-disable indent, no-unused-vars, no-multiple-empty-lines, max-nested-callbacks, space-before-function-paren, quotes, comma-spacing */
 'use strict';
 
-var precacheConfig = [["./bower_components/fetch/fetch.js","f12fc754bbd66a3d50c516237e8dda52"],["./bower_components/moment/min/moment.min.js","561459631a359ce13bdfefca09ebe147"],["./bower_components/webcomponentsjs/webcomponents-lite.min.js","02395895d5d08242c6ba93518a6da2c5"],["./index.html","c59406e409a33420ead4716a3896432d"],["./manifest.json","620ea7f89516bf0a293d8a63598f00bc"],["./src/login-view.html","8c455608eb39838742f7d7243d5ce8a8"],["./src/main/analytics/analytics-view.html","20fb7f64612425f6138f392dda09be70"],["./src/main/main-view.html","624231dd020f90d6e49767aea882033d"],["./src/main/not-found-view.html","049b0d013e8f9c6a1ca5c374ea60e318"],["./src/main/patients/patients-view.html","01428899f04a4d998d6b8b2c96836f31"],["./src/patient-portal.html","9f7c07f23f523566ffaeb68cafb41f53"]];
+var precacheConfig = [["./bower_components/fetch/fetch.js","1cb12191e47daef7cdc8a992d4da65e2"],["./bower_components/moment/min/moment.min.js","66587910db6b69812cd5cd9b750882ed"],["./bower_components/webcomponentsjs/webcomponents-lite.min.js","32b5a9b7ada86304bec6b43d3f2194f0"],["./index.html","203daa599853471ff5eb842d3a0124c4"],["./manifest.json","620ea7f89516bf0a293d8a63598f00bc"],["./src/login-view.html","36d143ee95ea6fbad282295490e7bb03"],["./src/main/analytics/analytics-view.html","96ca13243231b48e962ebd8659c39984"],["./src/main/main-view.html","4a40c2ecc101c3fd379985973dd5313c"],["./src/main/not-found-view.html","faeaf3d6e4450b50de47fcc3b5a65c18"],["./src/main/patients/patients-view.html","60a30193fcef78d04aa7e9a563e1fdac"],["./src/patient-portal.html","557a44bc0eabe8e87482ec316970bbec"]];
 var cacheName = 'sw-precache-v2--' + (self.registration ? self.registration.scope : '');
 
 
@@ -134,7 +134,10 @@ self.addEventListener('install', function(event) {
           Array.from(urlsToCacheKeys.values()).map(function(cacheKey) {
             // If we don't have a key matching url in the cache already, add it.
             if (!cachedUrls.has(cacheKey)) {
-              return cache.add(new Request(cacheKey, {credentials: 'same-origin'}));
+              return cache.add(new Request(cacheKey, {
+                credentials: 'same-origin',
+                redirect: 'follow'
+              }));
             }
           })
         );
