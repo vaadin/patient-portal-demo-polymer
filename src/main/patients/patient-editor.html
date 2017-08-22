@@ -202,7 +202,7 @@
 
 
       _checkFormValidity: function () {
-        this.valid = !Polymer.dom(this.root).querySelectorAll('.input').find(input => input.invalid);
+        this.valid = !Polymer.dom(this.root).querySelectorAll('.input.invalid');
       },
 
       save: function () {
