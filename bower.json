@@ -21,7 +21,9 @@
     "vaadin-charts": "vaadin/vaadin-charts#^5.0.0",
     "vaadin-grid": "vaadin/vaadin-grid#^3.0.1",
     "moment": "^2.17.1",
-    "fetch": "^2.0.1"
+    "fetch": "^2.0.1",
+    "iron-a11y-keys": "PolymerElements/iron-a11y-keys#^2.0.0",
+    "paper-input": "PolymerElements/paper-input#^2.0.1"
   },
   "devDependencies": {
     "web-component-tester": "^4.0.0"

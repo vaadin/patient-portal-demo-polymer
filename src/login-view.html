@@ -69,7 +69,7 @@
           <label for="password">Password</label>
           <input id="password" type="password" autocomplete="password" value="{{password::input}}">
         </div>
-        <button on-tap="login" class="primary">Login</button>
+        <button on-click="login" class="primary">Login</button>
       </div>
       <template is="dom-if" if="{{errorMsg}}">
         <div role="alert" class="alert error">
@@ -80,33 +80,40 @@
     </div>
   </template>
   <script>
-    Polymer({
-      is: 'login-view',
-      properties: {
-        errorMsg: String,
-        username: {
-          type: String,
-          value: 'user'
-        },
-        password: {
-          type: String,
-          value: 'password'
-        },
-        loggedIn: {
-          type: Boolean,
-          notify: true
+    class LoginView extends Polymer.Element {
+        static get is() {
+            return 'login-view'
         }
-      },
-      login: function () {
-        this.errorMsg = '';
-        PatientPortal.http.login({
-          username: this.username,
-          password: this.password
-        })
-          .then(token => this.loggedIn = true)
-          .catch(err =>
-            this.errorMsg = err);
-      }
-    });
+
+        static get properties() {
+            return {
+                errorMsg: String,
+                username: {
+                    type: String,
+                    value: 'user'
+                },
+                password: {
+                    type: String,
+                    value: 'password'
+                },
+                loggedIn: {
+                    type: Boolean,
+                    notify: true
+                }
+            }
+        }
+
+        login() {
+            this.errorMsg = '';
+            PatientPortal.http.login({
+                username: this.username,
+                password: this.password
+            })
+                .then(token => this.loggedIn = true)
+                .catch(err =>
+                    this.errorMsg = err);
+        }
+    }
+    customElements.define(LoginView.is, LoginView);
   </script>
 </dom-module>

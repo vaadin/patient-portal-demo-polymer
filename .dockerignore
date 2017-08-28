@@ -1,0 +1,7 @@
+.github
+.idea
+bower_components
+build
+.gitattributes
+.gitignore
+.travis.yml
