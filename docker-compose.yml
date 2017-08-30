@@ -1,0 +1,8 @@
+version: '3'
+services:
+  polymer-patient-portal:
+    build: .
+    environment:
+       - spring.datasource.url=jdbc:mysql://$datasourceUrl/pp
+    image:
+      'repo.vaadin.com:5001/polymer-patient-portal:polymer-cli-nginx'
