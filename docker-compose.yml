@@ -2,7 +2,9 @@ version: '3'
 services:
   polymer-patient-portal:
     build: .
+    ports:
+      - 80:80
     environment:
-       - spring.datasource.url=jdbc:mysql://$datasourceUrl:3306/pp
+      - spring.datasource.url=jdbc:mysql://$datasourceUrl:3306/pp
     image:
       'repo.vaadin.com:5001/polymer-patient-portal:polymer-cli-nginx'
